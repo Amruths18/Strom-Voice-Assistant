@@ -1,0 +1,83 @@
+# Strom AI Assistant Configuration Settings
+
+# Voice Settings
+voice:
+  wake_word: "hey strom"
+  stop_word: "stop strom"
+  language: "en-US"
+  
+  # Text-to-Speech Settings
+  tts:
+    engine: "pyttsx3"  # Offline TTS engine
+    rate: 150          # Words per minute
+    volume: 0.9        # Volume level (0.0 to 1.0)
+    voice_gender: "female"  # "male" or "female"
+  
+  # Speech-to-Text Settings
+  stt:
+    offline_model_path: "model"  # Path to Vosk model
+    sample_rate: 16000
+    use_online: true   # Try online STT when available
+    recording_duration: 5  # Maximum seconds to record
+
+# System Settings
+system:
+  auto_detect_network: true
+  confirmation_required:
+    - shutdown
+    - restart
+  
+  # Audio Settings
+  audio:
+    input_device: "default"
+    noise_reduction: true
+    noise_reduction_strength: 0.3
+    auto_gain: true
+
+# Assistant Behavior
+behavior:
+  greeting_message: "Hello! I'm Strom. How can I help you?"
+  error_message: "Sorry, I encountered an error. Please try again."
+  offline_message: "I'm currently offline. Some features may be limited."
+  confirmation_timeout: 10  # Seconds to wait for user confirmation
+  
+  # Context Settings
+  context:
+    retention_enabled: true
+    max_history: 50
+    context_timeout: 300  # Seconds before clearing context
+
+# Module Settings
+modules:
+  system_control:
+    enabled: true
+    require_confirmation: true
+  
+  task_manager:
+    enabled: true
+    reminder_check_interval: 30  # Seconds
+  
+  messaging:
+    enabled: true
+    default_message_app: "whatsapp"
+  
+  general_knowledge:
+    enabled: true
+    wikipedia_enabled: true
+    search_enabled: true
+
+# Logging
+logging:
+  enabled: true
+  log_file: "logs/strom.log"
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_commands: true
+  log_errors: true
+
+# Data Storage
+storage:
+  tasks_file: "data/user_tasks.json"
+  reminders_file: "data/reminders.json"
+  conversation_history: "data/conversation_history.json"
+  backup_enabled: true
+  backup_interval: 86400  # Seconds (daily)

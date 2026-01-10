@@ -1,0 +1,100 @@
+Input Text
+    ↓
+Text Cleaning
+    ↓
+Intent Classification
+    ↓
+Entity Extraction
+    ↓
+Context Analysis
+    ↓
+Action Module
+    ↓
+Response Generation
+
+
+Detailed NLP Components
+1. Preprocessing
+Lowercasing
+Removing noise words
+Tokenizing
+Lemmatizing (optional)
+Extracting keywords
+
+Example:
+"Set an alarm for tomorrow at 7am"
+Becomes:
+["set", "alarm", "tomorrow", "7am"]
+
+2. Intent Classification
+
+List of main intents:
+
+Intent Name	Example Utterances
+SET_ALARM	“Set an alarm”
+SET_REMINDER	“Remind me”
+SYSTEM_SHUTDOWN	“Shut down my PC”
+SYSTEM_LOCK	“Lock the system”
+OPEN_APP	“Open Chrome”
+SEND_MESSAGE	“Send a WhatsApp message”
+ASK_QUESTION	“What is AI?”
+CHAT	“How are you?”
+
+3. Entity Extraction 
+
+Identifies:
+Date
+Time
+Application name
+Contact name
+Message content
+
+Example:
+“Send message to Rahul saying I’ll come late”
+Entities extracted:
+contact = Rahul
+message = I’ll come late
+
+4. Context Manager
+
+Handles follow-up conversations:
+User: "Set a reminder"
+Assistant: "Okay, what should I remind you about?"
+User: "To call mom"
+Context helps link both messages.
+
+5. Command Router
+
+Maps intent → module:
+
+if intent == "SET_ALARM":
+    task_manager.set_alarm()
+elif intent == "SYSTEM_SHUTDOWN":
+    system_control.shutdown()
+elif intent == "ASK_QUESTION":
+    general_knowledge.answer()
+
+6. AI Conversation Engine
+
+Two modes:
+Offline conversation:
+Predefined responses
+Rule-based logic
+Local knowledge
+Online conversation:
+Uses internet-based search or API
+Can provide better quality answers
+
+7. Response Generation
+Creates human-like responses:
+
+Examples:
+“Your reminder has been set.”
+“Opening Chrome.”
+“Your system will shut down in 10 seconds.”
+
+8. Text-To-Speech Output
+Uses pyttsx3 (offline)
+Adjustable voice speed
+Male/female voice options
+Stable, low-latency
