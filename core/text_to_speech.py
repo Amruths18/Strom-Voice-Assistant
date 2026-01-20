@@ -4,8 +4,11 @@ Converts text responses to voice output using pyttsx3 (offline).
 Provides natural, conversational voice responses.
 """
 
+import threading
+import queue
+import time
 import pyttsx3
-from typing import Optional
+from typing import Optional, List
 
 
 class TextToSpeech:
@@ -32,51 +35,23 @@ class TextToSpeech:
         self.volume = volume
         self.voice_gender = voice_gender.lower()
         
-        # Initialize pyttsx3 engine
-        try:
-            self.engine = pyttsx3.init()
-            print("[TTS] Text-to-Speech engine initialized.")
-        except Exception as e:
-            print(f"[TTS] ERROR: Failed to initialize TTS engine: {str(e)}")
-            self.engine = None
-            return
-        
-        # Configure speech properties
-        self._configure_voice()
-        self.engine.setProperty('rate', self.rate)
-        self.engine.setProperty('volume', self.volume)
+        # Background TTS worker will own the pyttsx3 engine
+        self._task_queue: "queue.Queue" = queue.Queue()
+        self._stop_event = threading.Event()
+        self._ready_event = threading.Event()
+
+        # Start worker thread
+        self._worker = threading.Thread(target=self._worker_loop, daemon=True)
+        self._worker.start()
+
+        # Enqueue setup task and wait briefly for initialization
+        self._task_queue.put({'type': 'setup', 'rate': self.rate, 'volume': self.volume, 'voice_gender': self.voice_gender})
+        self._ready_event.wait(timeout=5)
         
     def _configure_voice(self):
         """Select and configure the voice based on gender preference."""
-        if not self.engine:
-            return
-        
-        voices = self.engine.getProperty('voices')
-        
-        # Try to find preferred gender voice
-        selected_voice = None
-        
-        for voice in voices:
-            voice_name = voice.name.lower()
-            
-            if self.voice_gender == "female":
-                if "female" in voice_name or "zira" in voice_name or "hazel" in voice_name:
-                    selected_voice = voice.id
-                    break
-            elif self.voice_gender == "male":
-                if "male" in voice_name or "david" in voice_name or "mark" in voice_name:
-                    selected_voice = voice.id
-                    break
-        
-        # Fallback to first available voice
-        if not selected_voice and voices:
-            selected_voice = voices[0].id
-        
-        if selected_voice:
-            self.engine.setProperty('voice', selected_voice)
-            print(f"[TTS] Voice configured: {self.voice_gender}")
-        else:
-            print("[TTS] WARNING: Could not configure voice.")
+        # Voice configuration is performed in the worker where the engine exists.
+        return
     
     def speak(self, text: str, wait: bool = True):
         """
@@ -86,30 +61,16 @@ class TextToSpeech:
             text: Text to speak
             wait: Whether to wait for speech to complete before returning
         """
-        if not self.engine:
-            print("[TTS] ERROR: TTS engine not initialized.")
-            return
-        
         if not text or not text.strip():
             print("[TTS] WARNING: Empty text provided.")
             return
-        
-        try:
-            print(f"[TTS] Speaking: \"{text}\"")
-            
-            if wait:
-                # Blocking mode: wait for speech to complete
-                self.engine.say(text)
-                self.engine.runAndWait()
-            else:
-                # Non-blocking mode: speak in background
-                self.engine.say(text)
-                self.engine.startLoop(False)
-                self.engine.iterate()
-                self.engine.endLoop()
-                
-        except Exception as e:
-            print(f"[TTS] ERROR during speech: {str(e)}")
+
+        if wait:
+            done_event = threading.Event()
+            self._task_queue.put({'type': 'speak', 'text': text, 'done_event': done_event})
+            done_event.wait()
+        else:
+            self._task_queue.put({'type': 'speak', 'text': text, 'done_event': None})
     
     def set_rate(self, rate: int):
         """
@@ -118,10 +79,8 @@ class TextToSpeech:
         Args:
             rate: New speech rate (words per minute)
         """
-        if self.engine:
-            self.rate = rate
-            self.engine.setProperty('rate', rate)
-            print(f"[TTS] Speech rate set to: {rate} WPM")
+        self.rate = rate
+        self._task_queue.put({'type': 'set_rate', 'rate': rate})
     
     def set_volume(self, volume: float):
         """
@@ -130,20 +89,14 @@ class TextToSpeech:
         Args:
             volume: New volume level (0.0 to 1.0)
         """
-        if self.engine:
-            volume = max(0.0, min(1.0, volume))  # Clamp between 0 and 1
-            self.volume = volume
-            self.engine.setProperty('volume', volume)
-            print(f"[TTS] Volume set to: {volume}")
+        volume = max(0.0, min(1.0, volume))  # Clamp between 0 and 1
+        self.volume = volume
+        self._task_queue.put({'type': 'set_volume', 'volume': volume})
     
     def stop(self):
         """Stop current speech immediately."""
-        if self.engine:
-            try:
-                self.engine.stop()
-                print("[TTS] Speech stopped.")
-            except Exception as e:
-                print(f"[TTS] ERROR stopping speech: {str(e)}")
+        # Request worker to stop any current speech
+        self._task_queue.put({'type': 'stop_now'})
     
     def get_available_voices(self) -> list:
         """
@@ -152,31 +105,125 @@ class TextToSpeech:
         Returns:
             List of voice information dictionaries
         """
-        if not self.engine:
-            return []
-        
-        voices = self.engine.getProperty('voices')
-        voice_list = []
-        
-        for voice in voices:
-            voice_info = {
-                'id': voice.id,
-                'name': voice.name,
-                'languages': voice.languages,
-                'gender': voice.gender if hasattr(voice, 'gender') else 'unknown'
-            }
-            voice_list.append(voice_info)
-        
-        return voice_list
+        # Request voices from worker and wait for response
+        resp_event = threading.Event()
+        container: List = []
+        self._task_queue.put({'type': 'get_voices', 'resp_event': resp_event, 'container': container})
+        resp_event.wait(timeout=3)
+        return container[0] if container else []
     
     def cleanup(self):
         """Clean up TTS engine resources."""
-        if self.engine:
-            try:
-                self.engine.stop()
-            except:
-                pass
+        # Signal worker to stop and wait
+        self._stop_event.set()
+        self._task_queue.put({'type': 'shutdown'})
+        self._worker.join(timeout=3)
         print("[TTS] Resources cleaned up.")
+
+    def _worker_loop(self):
+        """Worker thread that owns the pyttsx3 engine and processes tasks."""
+        engine = None
+        try:
+            while not self._stop_event.is_set():
+                try:
+                    task = self._task_queue.get(timeout=0.2)
+                except queue.Empty:
+                    continue
+
+                ttype = task.get('type')
+
+                if ttype == 'setup':
+                    try:
+                        engine = pyttsx3.init()
+                        # configure voice selection
+                        voices = engine.getProperty('voices')
+                        selected_voice = None
+                        for voice in voices:
+                            vname = getattr(voice, 'name', '').lower()
+                            if self.voice_gender == 'female' and ('female' in vname or 'zira' in vname or 'hazel' in vname):
+                                selected_voice = voice.id
+                                break
+                            if self.voice_gender == 'male' and ('male' in vname or 'david' in vname or 'mark' in vname):
+                                selected_voice = voice.id
+                                break
+                        if not selected_voice and voices:
+                            selected_voice = voices[0].id
+                        if selected_voice:
+                            engine.setProperty('voice', selected_voice)
+                        engine.setProperty('rate', task.get('rate', self.rate))
+                        engine.setProperty('volume', task.get('volume', self.volume))
+                        print('[TTS] Text-to-Speech engine initialized (worker).')
+                    except Exception as e:
+                        print(f'[TTS] ERROR initializing engine in worker: {e}')
+                    finally:
+                        self._ready_event.set()
+
+                elif ttype == 'speak':
+                    text = task.get('text', '')
+                    done_event = task.get('done_event')
+                    if engine and text:
+                        try:
+                            # runAndWait is blocking inside worker thread
+                            engine.say(text)
+                            engine.runAndWait()
+                        except Exception as e:
+                            print(f'[TTS] ERROR during speech: {e}')
+                    if done_event:
+                        done_event.set()
+
+                elif ttype == 'set_rate' and engine:
+                    try:
+                        engine.setProperty('rate', task.get('rate', self.rate))
+                    except Exception:
+                        pass
+
+                elif ttype == 'set_volume' and engine:
+                    try:
+                        engine.setProperty('volume', task.get('volume', self.volume))
+                    except Exception:
+                        pass
+
+                elif ttype == 'get_voices' and engine:
+                    resp_event = task.get('resp_event')
+                    container = task.get('container')
+                    voices = engine.getProperty('voices')
+                    voice_list = []
+                    for voice in voices:
+                        voice_info = {
+                            'id': voice.id,
+                            'name': getattr(voice, 'name', ''),
+                            'languages': getattr(voice, 'languages', []),
+                            'gender': getattr(voice, 'gender', 'unknown')
+                        }
+                        voice_list.append(voice_info)
+                    if container is not None:
+                        container.append(voice_list)
+                    if resp_event:
+                        resp_event.set()
+
+                elif ttype == 'stop_now' and engine:
+                    try:
+                        engine.stop()
+                    except Exception:
+                        pass
+
+                elif ttype == 'shutdown':
+                    break
+
+                try:
+                    self._task_queue.task_done()
+                except Exception:
+                    pass
+
+        finally:
+            try:
+                if engine:
+                    try:
+                        engine.stop()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
 
 
 # Test function for standalone execution

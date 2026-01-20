@@ -7,7 +7,8 @@ Runs in a continuous loop and signals when user wants to activate or stop the as
 import json
 import queue
 import sys
-from vosk import Model, KaldiRecognizer
+from vosk import KaldiRecognizer
+from core.vosk_manager import get_vosk_model
 import pyaudio
 import threading
 from typing import Callable, Optional
@@ -45,12 +46,12 @@ class HotwordListener:
         self.chunk_size = 4000
         self.audio_queue = queue.Queue()
         
-        # Initialize Vosk model
+        # Initialize Vosk model (use cached model)
         try:
-            self.model = Model(model_path)
+            self.model = get_vosk_model(model_path)
             self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
             self.recognizer.SetWords(True)
-            print(f"[Hotword] Vosk model loaded from: {model_path}")
+            print(f"[Hotword] Vosk model (cached) loaded from: {model_path}")
         except Exception as e:
             print(f"[Hotword] ERROR: Failed to load Vosk model from '{model_path}'")
             print(f"[Hotword] {str(e)}")

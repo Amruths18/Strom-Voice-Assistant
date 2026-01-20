@@ -9,8 +9,9 @@ import pyaudio
 import wave
 import os
 import sys
-from vosk import Model, KaldiRecognizer
+from vosk import KaldiRecognizer
 from typing import Optional
+from core.vosk_manager import get_vosk_model
 import requests
 import tempfile
 
@@ -42,10 +43,10 @@ class SpeechToText:
         self.use_online = use_online
         self.chunk_size = 4000
         
-        # Initialize Vosk for offline recognition
+        # Initialize Vosk for offline recognition (use cached model)
         try:
-            self.model = Model(model_path)
-            print(f"[STT] Vosk model loaded from: {model_path}")
+            self.model = get_vosk_model(model_path)
+            print(f"[STT] Vosk model (cached) loaded from: {model_path}")
         except Exception as e:
             print(f"[STT] ERROR: Failed to load Vosk model from '{model_path}'")
             print(f"[STT] {str(e)}")
