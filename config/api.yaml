@@ -1,57 +1,26 @@
 # Strom AI Assistant API Configuration
-# Store API keys and credentials here
-# WARNING: Keep this file secure and never commit to public repositories
+# Add your API keys here
 
-# OpenAI API (for Whisper STT)
 openai:
-  api_key: ""  # Add your OpenAI API key here
-  model: "whisper-1"
+  api_key: ""  # OpenAI API key for Whisper
   enabled: false
 
-# Weather API (OpenWeatherMap)
 weather:
-  api_key: ""  # Add your OpenWeatherMap API key here
-  api_url: "http://api.openweathermap.org/data/2.5/weather"
-  units: "metric"  # metric, imperial, or kelvin
+  api_key: ""  # OpenWeatherMap API key
   enabled: false
 
-# News API
 news:
-  api_key: ""  # Add your News API key here
-  api_url: "https://newsapi.org/v2/top-headlines"
-  country: "us"
-  category: "general"  # business, entertainment, general, health, science, sports, technology
+  api_key: ""  # News API key
   enabled: false
 
-# Email Configuration (for sending emails)
 email:
   smtp_server: "smtp.gmail.com"
   smtp_port: 587
-  email_address: ""  # Your email address
-  email_password: ""  # Your email password (use app password for Gmail)
-  use_tls: true
+  email_address: ""  # Your email
+  email_password: ""  # App password
   enabled: false
 
-# Contact Database (for WhatsApp/Email)
 contacts:
-  # Add your contacts here
-  # Format: name: email/phone
   john:
     email: "john@example.com"
     phone: "+1234567890"
-  jane:
-    email: "jane@example.com"
-    phone: "+0987654321"
-
-# Network Settings
-network:
-  connection_timeout: 5  # Seconds
-  retry_attempts: 3
-  check_interval: 60  # Seconds between connectivity checks
-
-# Security Settings
-security:
-  enable_command_logging: true
-  enable_input_sanitization: true
-  require_confirmation_for_dangerous_commands: true
-  max_failed_attempts: 5

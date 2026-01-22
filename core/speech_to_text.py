@@ -1,7 +1,6 @@
 """
-Speech-to-Text Module for Strom AI Assistant
-Converts voice input to text using offline (Vosk) and optional online (Whisper API) methods.
-Automatically detects network status and chooses appropriate method.
+Enhanced Speech-to-Text Module for Strom AI Assistant
+Converts voice to text with silence detection
 """
 
 import json
@@ -9,17 +8,17 @@ import pyaudio
 import wave
 import os
 import sys
-from vosk import KaldiRecognizer
+from vosk import Model, KaldiRecognizer
 from typing import Optional
-from core.vosk_manager import get_vosk_model
 import requests
 import tempfile
+import numpy as np
+import time
 
 
 class SpeechToText:
     """
-    Handles speech-to-text conversion with offline-first approach.
-    Falls back to Vosk if online services are unavailable.
+    Handles speech-to-text with offline/online support.
     """
     
     def __init__(
@@ -27,79 +26,184 @@ class SpeechToText:
         model_path: str = "model",
         sample_rate: int = 16000,
         whisper_api_key: Optional[str] = None,
-        use_online: bool = True
+        use_online: bool = True,
+        silence_threshold: int = 300,
+        silence_duration: float = 1.5
     ):
-        """
-        Initialize Speech-to-Text engine.
-        
-        Args:
-            model_path: Path to Vosk model directory
-            sample_rate: Audio sample rate in Hz
-            whisper_api_key: OpenAI API key for Whisper (optional)
-            use_online: Whether to attempt online STT when available
-        """
+        """Initialize STT engine."""
         self.sample_rate = sample_rate
         self.whisper_api_key = whisper_api_key
         self.use_online = use_online
         self.chunk_size = 4000
         
-        # Initialize Vosk for offline recognition (use cached model)
+        # Enhanced silence detection parameters
+        self.silence_threshold = silence_threshold
+        self.silence_duration = silence_duration
+        self.min_speech_duration = 0.5  # Minimum speech to detect
+        self.max_speech_duration = 15   # Maximum recording time
+        
+        # Audio preprocessing
+        self.noise_reduction = True
+        self.auto_gain = True
+        
+        # Initialize Vosk
         try:
-            self.model = get_vosk_model(model_path)
-            print(f"[STT] Vosk model (cached) loaded from: {model_path}")
+            print(f"[STT] Loading Vosk model...")
+            self.model = Model(model_path)
+            print(f"[STT] ✅ Model loaded")
         except Exception as e:
-            print(f"[STT] ERROR: Failed to load Vosk model from '{model_path}'")
-            print(f"[STT] {str(e)}")
+            print(f"[STT] ❌ Failed to load model: {str(e)}")
             sys.exit(1)
         
-        # PyAudio setup
+        # PyAudio
         self.audio = pyaudio.PyAudio()
-        
+        self.input_device_index = self._get_input_device()
+    
+    def _get_input_device(self) -> Optional[int]:
+        """Get input device."""
+        try:
+            device = self.audio.get_default_input_device_info()
+            print(f"[STT] Using: {device['name']}")
+            return device['index']
+        except:
+            return None
+    
     def is_online(self) -> bool:
-        """
-        Check if internet connection is available.
-        
-        Returns:
-            True if online, False otherwise
-        """
+        """Check internet."""
         try:
             requests.get("https://www.google.com", timeout=3)
             return True
         except:
             return False
     
-    def record_audio(self, duration: int = 5, silence_threshold: int = 500) -> str:
-        """
-        Record audio from microphone and save to temporary file.
-        
-        Args:
-            duration: Maximum recording duration in seconds
-            silence_threshold: Threshold for silence detection
+    def get_audio_level(self, data: bytes) -> float:
+        """Calculate RMS audio level."""
+        try:
+            audio_data = np.frombuffer(data, dtype=np.int16)
+            if len(audio_data) == 0:
+                return 0.0
             
-        Returns:
-            Path to recorded audio file
-        """
-        print("[STT] Listening... Speak now!")
+            # Calculate RMS, handle potential NaN/inf values
+            rms = np.sqrt(np.mean(audio_data.astype(np.float64)**2))
+            return rms if np.isfinite(rms) else 0.0
+        except:
+            return 0.0
+    
+    def _detect_stop_command(self, audio_data: bytes) -> bool:
+        """Detect stop command in audio data."""
+        try:
+            # Quick recognition for stop command
+            temp_recognizer = KaldiRecognizer(self.model, self.sample_rate)
+            temp_recognizer.SetWords(True)
+            
+            if temp_recognizer.AcceptWaveform(audio_data):
+                result = json.loads(temp_recognizer.Result())
+                text = result.get('text', '').lower().strip()
+                
+                # Check for stop words
+                stop_words = ['stop', 'cancel', 'quit', 'exit', 'enough']
+                for word in stop_words:
+                    if word in text:
+                        return True
+            
+            return False
+        except:
+            return False
+    
+    def record_audio_with_silence_detection(self, max_duration: int = 10) -> str:
+        """Record audio with enhanced silence detection."""
+        print("\n[STT] 🎤 Listening... Speak now! (Say 'stop' to cancel)")
         
-        stream = self.audio.open(
-            format=pyaudio.paInt16,
-            channels=1,
-            rate=self.sample_rate,
-            input=True,
-            frames_per_buffer=self.chunk_size
-        )
+        if self.input_device_index is None:
+            print("[STT] ❌ No input device")
+            return ""
+        
+        try:
+            stream = self.audio.open(
+                format=pyaudio.paInt16,
+                channels=1,
+                rate=self.sample_rate,
+                input=True,
+                input_device_index=self.input_device_index,
+                frames_per_buffer=self.chunk_size
+            )
+        except Exception as e:
+            print(f"[STT] ❌ Failed to open stream: {str(e)}")
+            return ""
         
         frames = []
+        silent_chunks = 0
+        speech_chunks = 0
+        chunks_per_second = self.sample_rate / self.chunk_size
+        silence_threshold_chunks = int(self.silence_duration * chunks_per_second)
+        min_speech_chunks = int(self.min_speech_duration * chunks_per_second)
         
-        # Record audio
-        for i in range(0, int(self.sample_rate / self.chunk_size * duration)):
-            data = stream.read(self.chunk_size, exception_on_overflow=False)
-            frames.append(data)
+        start_time = time.time()
+        speech_detected = False
+        noise_levels = []  # Track noise levels for dynamic threshold
+        
+        print("[STT] Level: ", end="", flush=True)
+        
+        try:
+            while (time.time() - start_time) < self.max_speech_duration:
+                data = stream.read(self.chunk_size, exception_on_overflow=False)
+                frames.append(data)
+                
+                level = self.get_audio_level(data)
+                noise_levels.append(level)
+                
+                # Dynamic threshold adjustment based on recent noise
+                if len(noise_levels) > 10:
+                    noise_levels.pop(0)
+                    avg_noise = sum(noise_levels) / len(noise_levels)
+                    dynamic_threshold = max(self.silence_threshold, avg_noise * 1.2)
+                else:
+                    dynamic_threshold = self.silence_threshold
+                
+                # Visual feedback
+                bars = int(level / 200)  # Adjusted for better visualization
+                status = "🎤" if level > dynamic_threshold else "🤫"
+                print(f"\r[STT] {status} Level: {'█' * min(bars, 30)} {int(level):4d}", end="", flush=True)
+                
+                # Detect speech/silence
+                if level > dynamic_threshold:
+                    silent_chunks = 0
+                    speech_chunks += 1
+                    speech_detected = True
+                else:
+                    if speech_detected:
+                        silent_chunks += 1
+                
+                # Stop on silence after minimum speech
+                if speech_detected and speech_chunks >= min_speech_chunks and silent_chunks > silence_threshold_chunks:
+                    print("\n[STT] ✅ Silence detected")
+                    break
+                
+                # Check for stop command
+                if len(frames) % 10 == 0:  # Check every ~0.4 seconds
+                    recent_frames = frames[-10:] if len(frames) >= 10 else frames
+                    if self._detect_stop_command(b"".join(recent_frames)):
+                        print("\n[STT] 🛑 Stop command detected")
+                        stream.stop_stream()
+                        stream.close()
+                        return ""
+            
+            print()
+            
+        except Exception as e:
+            print(f"\n[STT] ❌ Recording error: {str(e)}")
+            stream.stop_stream()
+            stream.close()
+            return ""
         
         stream.stop_stream()
         stream.close()
         
-        # Save to temporary file
+        if not speech_detected or speech_chunks < min_speech_chunks:
+            print("[STT] ⚠️ No sufficient speech detected")
+            return ""
+        
+        # Save to temp file
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
         temp_path = temp_file.name
         temp_file.close()
@@ -111,26 +215,21 @@ class SpeechToText:
         wf.writeframes(b''.join(frames))
         wf.close()
         
-        print("[STT] Recording complete.")
+        duration = len(frames) * self.chunk_size / self.sample_rate
+        print(f"[STT] ✅ Recorded {duration:.1f}s audio")
+        
         return temp_path
     
     def transcribe_offline(self, audio_path: str) -> str:
-        """
-        Transcribe audio file using Vosk (offline).
-        
-        Args:
-            audio_path: Path to audio file
-            
-        Returns:
-            Transcribed text
-        """
+        """Transcribe with Vosk."""
         try:
+            print("[STT] 🔄 Transcribing (offline)...")
+            
             recognizer = KaldiRecognizer(self.model, self.sample_rate)
             recognizer.SetWords(True)
             
             wf = wave.open(audio_path, "rb")
             
-            # Process audio in chunks
             full_text = ""
             while True:
                 data = wf.readframes(self.chunk_size)
@@ -139,137 +238,101 @@ class SpeechToText:
                 
                 if recognizer.AcceptWaveform(data):
                     result = json.loads(recognizer.Result())
-                    full_text += result.get('text', '') + " "
+                    text = result.get('text', '')
+                    if text:
+                        full_text += text + " "
             
-            # Get final result
-            final_result = json.loads(recognizer.FinalResult())
-            full_text += final_result.get('text', '')
+            final = json.loads(recognizer.FinalResult())
+            final_text = final.get('text', '')
+            if final_text:
+                full_text += final_text
             
             wf.close()
             
-            return full_text.strip()
+            text = full_text.strip()
+            
+            if text:
+                print(f"[STT] ✅ '{text}'")
+            else:
+                print("[STT] ⚠️ No speech recognized")
+            
+            return text
             
         except Exception as e:
-            print(f"[STT] Offline transcription error: {str(e)}")
+            print(f"[STT] ❌ Error: {str(e)}")
             return ""
     
     def transcribe_online(self, audio_path: str) -> str:
-        """
-        Transcribe audio file using Whisper API (online).
-        
-        Args:
-            audio_path: Path to audio file
-            
-        Returns:
-            Transcribed text
-        """
+        """Transcribe with Whisper API."""
         if not self.whisper_api_key:
-            print("[STT] No Whisper API key provided. Using offline mode.")
             return self.transcribe_offline(audio_path)
         
         try:
-            headers = {
-                "Authorization": f"Bearer {self.whisper_api_key}"
-            }
+            print("[STT] 🔄 Transcribing (online)...")
             
-            with open(audio_path, 'rb') as audio_file:
-                files = {
-                    'file': audio_file,
-                    'model': (None, 'whisper-1')
-                }
+            headers = {"Authorization": f"Bearer {self.whisper_api_key}"}
+            
+            with open(audio_path, 'rb') as f:
+                files = {'file': f, 'model': (None, 'whisper-1')}
                 
                 response = requests.post(
                     "https://api.openai.com/v1/audio/transcriptions",
                     headers=headers,
                     files=files,
-                    timeout=10
+                    timeout=30
                 )
             
             if response.status_code == 200:
-                result = response.json()
-                return result.get('text', '').strip()
+                text = response.json().get('text', '').strip()
+                if text:
+                    print(f"[STT] ✅ '{text}'")
+                return text
             else:
-                print(f"[STT] Online transcription failed: {response.status_code}")
-                print("[STT] Falling back to offline mode.")
+                print(f"[STT] ⚠️ Online failed, using offline")
                 return self.transcribe_offline(audio_path)
                 
         except Exception as e:
-            print(f"[STT] Online transcription error: {str(e)}")
-            print("[STT] Falling back to offline mode.")
+            print(f"[STT] ⚠️ Online error, using offline")
             return self.transcribe_offline(audio_path)
     
-    def listen_and_transcribe(self, duration: int = 5) -> str:
-        """
-        Main method: Record audio and transcribe to text.
-        Automatically chooses online or offline mode based on availability.
+    def listen_and_transcribe(self, duration: int = 10) -> str:
+        """Main method: record and transcribe."""
+        audio_path = self.record_audio_with_silence_detection(max_duration=duration)
         
-        Args:
-            duration: Maximum recording duration in seconds
-            
-        Returns:
-            Transcribed text
-        """
-        # Record audio
-        audio_path = self.record_audio(duration=duration)
+        if not audio_path:
+            return ""
         
-        # Determine transcription method
-        online_available = self.use_online and self.is_online() and self.whisper_api_key
+        # Choose method
+        online_ok = self.use_online and self.is_online() and self.whisper_api_key
         
-        if online_available:
-            print("[STT] Using online transcription (Whisper API)")
+        if online_ok:
             text = self.transcribe_online(audio_path)
         else:
-            print("[STT] Using offline transcription (Vosk)")
             text = self.transcribe_offline(audio_path)
         
-        # Clean up temporary file
+        # Cleanup
         try:
             os.remove(audio_path)
         except:
             pass
         
-        if text:
-            print(f"[STT] Transcribed: \"{text}\"")
-        else:
-            print("[STT] No speech detected or transcription failed.")
-        
         return text
     
     def cleanup(self):
-        """Clean up resources."""
+        """Clean up."""
         if self.audio:
             self.audio.terminate()
-        print("[STT] Resources cleaned up.")
-
-
-# Test function for standalone execution
-def _test_speech_to_text():
-    """Test the speech-to-text module independently."""
-    
-    print("=== Strom STT Module Test ===")
-    print("This will test offline speech recognition.")
-    print("Speak after you see 'Listening...'")
-    
-    # Initialize STT (offline only for testing)
-    stt = SpeechToText(
-        model_path="model",
-        use_online=False
-    )
-    
-    try:
-        # Test transcription
-        text = stt.listen_and_transcribe(duration=5)
-        
-        if text:
-            print(f"\n✅ Success! You said: \"{text}\"")
-        else:
-            print("\n❌ Failed to transcribe audio.")
-            
-    except KeyboardInterrupt:
-        print("\n[STT] Test interrupted.")
-    finally:
-        stt.cleanup()
 
 
 if __name__ == "__main__":
-    _test_speech_to_text()
+    print("=== STT Test ===")
+    stt = SpeechToText(use_online=False)
+    
+    try:
+        text = stt.listen_and_transcribe()
+        if text:
+            print(f"\n✅ You said: '{text}'")
+        else:
+            print("\n❌ No text recognized")
+    finally:
+        stt.cleanup()

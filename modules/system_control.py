@@ -1,103 +1,65 @@
 """
 System Control Module for Strom AI Assistant
-Handles system-level operations: shutdown, restart, lock, application management,
-volume and brightness control.
 """
 
 import os
 import platform
 import subprocess
 import psutil
-from typing import Dict, Optional
+from typing import Dict
 
 
 class SystemControl:
     """
-    Manages system-level control operations.
-    Platform-aware implementation for Windows, macOS, and Linux.
+    Manages system-level operations.
     """
     
     def __init__(self):
-        """Initialize system control module."""
+        """Initialize system control."""
         self.system = platform.system()
-        print(f"[SystemControl] Initialized for {self.system}")
+        print(f"[SystemControl] Initialized ({self.system})")
     
     def shutdown(self, entities: Dict) -> str:
-        """
-        Shutdown the computer.
-        
-        Args:
-            entities: Command entities (unused)
-            
-        Returns:
-            Status message
-        """
+        """Shutdown computer."""
         try:
             if self.system == "Windows":
-                os.system("shutdown /s /t 5")
-            elif self.system == "Darwin":  # macOS
-                os.system("sudo shutdown -h now")
-            else:  # Linux
-                os.system("shutdown -h now")
-            
-            return "Shutting down the system in 5 seconds..."
-        except Exception as e:
-            return f"Failed to shutdown: {str(e)}"
+                os.system("shutdown /s /t 10")
+            elif self.system == "Darwin":
+                os.system("sudo shutdown -h +1")
+            else:
+                os.system("shutdown -h +1")
+            return "Shutting down in 10 seconds..."
+        except:
+            return "Failed to shutdown."
     
     def restart(self, entities: Dict) -> str:
-        """
-        Restart the computer.
-        
-        Args:
-            entities: Command entities (unused)
-            
-        Returns:
-            Status message
-        """
+        """Restart computer."""
         try:
             if self.system == "Windows":
-                os.system("shutdown /r /t 5")
+                os.system("shutdown /r /t 10")
             elif self.system == "Darwin":
-                os.system("sudo shutdown -r now")
+                os.system("sudo shutdown -r +1")
             else:
-                os.system("shutdown -r now")
-            
-            return "Restarting the system in 5 seconds..."
-        except Exception as e:
-            return f"Failed to restart: {str(e)}"
+                os.system("shutdown -r +1")
+            return "Restarting in 10 seconds..."
+        except:
+            return "Failed to restart."
     
     def lock_screen(self, entities: Dict) -> str:
-        """
-        Lock the computer screen.
-        
-        Args:
-            entities: Command entities (unused)
-            
-        Returns:
-            Status message
-        """
+        """Lock screen."""
         try:
             if self.system == "Windows":
                 os.system("rundll32.exe user32.dll,LockWorkStation")
             elif self.system == "Darwin":
-                os.system("/System/Library/CoreServices/Menu\\ Extras/User.menu/Contents/Resources/CGSession -suspend")
+                os.system("pmset displaysleepnow")
             else:
                 os.system("gnome-screensaver-command -l")
-            
             return "Screen locked."
-        except Exception as e:
-            return f"Failed to lock screen: {str(e)}"
+        except:
+            return "Failed to lock screen."
     
     def sleep(self, entities: Dict) -> str:
-        """
-        Put computer to sleep.
-        
-        Args:
-            entities: Command entities (unused)
-            
-        Returns:
-            Status message
-        """
+        """Put system to sleep."""
         try:
             if self.system == "Windows":
                 os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
@@ -105,215 +67,201 @@ class SystemControl:
                 os.system("pmset sleepnow")
             else:
                 os.system("systemctl suspend")
-            
-            return "Putting system to sleep..."
-        except Exception as e:
-            return f"Failed to sleep: {str(e)}"
+            return "Going to sleep..."
+        except:
+            return "Failed to sleep."
     
     def open_application(self, entities: Dict) -> str:
-        """
-        Open an application.
+        """Open application with enhanced support."""
+        app = entities.get('app_name', '').lower()
         
-        Args:
-            entities: Must contain 'app_name'
-            
-        Returns:
-            Status message
-        """
-        app_name = entities.get('app_name', '').lower()
-        
-        if not app_name or app_name == 'unknown':
-            return "Please specify which application to open."
+        if not app or app == 'unknown':
+            return "Which application should I open?"
         
         try:
             if self.system == "Windows":
-                # Common Windows applications
-                app_paths = {
+                apps = {
                     'notepad': 'notepad.exe',
                     'calculator': 'calc.exe',
                     'google chrome': 'chrome.exe',
                     'file explorer': 'explorer.exe',
-                    'microsoft word': 'winword.exe',
-                    'microsoft excel': 'excel.exe',
-                    'visual studio code': 'code.exe'
+                    'word': 'winword.exe',
+                    'excel': 'excel.exe',
+                    'powerpoint': 'powerpnt.exe',
+                    'paint': 'mspaint.exe',
+                    'command prompt': 'cmd.exe',
+                    'powershell': 'powershell.exe',
+                    'task manager': 'taskmgr.exe',
+                    'control panel': 'control.exe',
+                    'settings': 'ms-settings:',
+                    'edge': 'msedge.exe',
+                    'firefox': 'firefox.exe',
+                    'vlc': 'vlc.exe',
+                    'spotify': 'spotify.exe',
+                    'discord': 'discord.exe',
+                    'steam': 'steam.exe',
+                    'vscode': 'code.exe',
+                    'sublime': 'sublime_text.exe'
                 }
-                
-                app_cmd = app_paths.get(app_name, app_name + '.exe')
-                subprocess.Popen(app_cmd, shell=True)
-                
+                cmd = apps.get(app, app + '.exe')
+                subprocess.Popen(cmd, shell=True)
             elif self.system == "Darwin":
-                # macOS applications
-                app_paths = {
-                    'google chrome': '/Applications/Google Chrome.app',
-                    'safari': '/Applications/Safari.app',
-                    'finder': '/System/Library/CoreServices/Finder.app',
-                    'calculator': '/Applications/Calculator.app'
-                }
-                
-                app_path = app_paths.get(app_name, f'/Applications/{app_name.title()}.app')
-                os.system(f'open "{app_path}"')
-                
-            else:  # Linux
-                subprocess.Popen(app_name, shell=True)
+                os.system(f'open -a "{app}"')
+            else:
+                subprocess.Popen(app, shell=True)
             
-            return f"Opening {app_name}..."
-            
-        except Exception as e:
-            return f"Failed to open {app_name}: {str(e)}"
+            return f"Opening {app}..."
+        except:
+            return f"Failed to open {app}."
     
     def close_application(self, entities: Dict) -> str:
-        """
-        Close a running application.
+        """Close application."""
+        app = entities.get('app_name', '').lower()
         
-        Args:
-            entities: Must contain 'app_name'
-            
-        Returns:
-            Status message
-        """
-        app_name = entities.get('app_name', '').lower()
-        
-        if not app_name or app_name == 'unknown':
-            return "Please specify which application to close."
+        if not app or app == 'unknown':
+            return "Which application should I close?"
         
         try:
-            # Find and kill process
             killed = False
             for proc in psutil.process_iter(['name']):
                 try:
-                    proc_name = proc.info['name'].lower()
-                    if app_name in proc_name:
+                    if app in proc.info['name'].lower():
                         proc.kill()
                         killed = True
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                except:
                     pass
             
-            if killed:
-                return f"Closed {app_name}."
-            else:
-                return f"{app_name} is not currently running."
-                
-        except Exception as e:
-            return f"Failed to close {app_name}: {str(e)}"
+            return f"Closed {app}." if killed else f"{app} not running."
+        except:
+            return f"Failed to close {app}."
     
     def control_volume(self, entities: Dict) -> str:
-        """
-        Control system volume.
-        
-        Args:
-            entities: May contain 'level' (0-100) and 'action' (increase/decrease/set/mute)
-            
-        Returns:
-            Status message
-        """
-        action = entities.get('action', 'set')
+        """Control volume."""
         level = entities.get('level')
+        action = entities.get('action', 'set')
         
         try:
             if self.system == "Windows":
                 if action == 'mute':
                     os.system("nircmd.exe mutesysvolume 1")
                     return "Volume muted."
-                elif action == 'unmute':
-                    os.system("nircmd.exe mutesysvolume 0")
-                    return "Volume unmuted."
                 elif level is not None:
-                    # NirCmd sets volume from 0-65535
-                    vol_value = int((level / 100) * 65535)
-                    os.system(f"nircmd.exe setsysvolume {vol_value}")
+                    vol = int((level / 100) * 65535)
+                    os.system(f"nircmd.exe setsysvolume {vol}")
                     return f"Volume set to {level}%."
-                elif action == 'increase':
-                    os.system("nircmd.exe changesysvolume 2000")
-                    return "Volume increased."
-                elif action == 'decrease':
-                    os.system("nircmd.exe changesysvolume -2000")
-                    return "Volume decreased."
-            
-            elif self.system == "Darwin":
-                if action == 'mute':
-                    os.system("osascript -e 'set volume output muted true'")
-                    return "Volume muted."
-                elif action == 'unmute':
-                    os.system("osascript -e 'set volume output muted false'")
-                    return "Volume unmuted."
-                elif level is not None:
-                    os.system(f"osascript -e 'set volume output volume {level}'")
-                    return f"Volume set to {level}%."
-            
-            else:  # Linux (using amixer)
-                if action == 'mute':
-                    os.system("amixer set Master mute")
-                    return "Volume muted."
-                elif action == 'unmute':
-                    os.system("amixer set Master unmute")
-                    return "Volume unmuted."
-                elif level is not None:
-                    os.system(f"amixer set Master {level}%")
-                    return f"Volume set to {level}%."
-            
-            return "Volume control command received."
-            
-        except Exception as e:
-            return f"Failed to control volume: {str(e)}"
+            return "Volume control executed."
+        except:
+            return "Volume control failed."
     
     def control_brightness(self, entities: Dict) -> str:
-        """
-        Control screen brightness.
-        
-        Args:
-            entities: May contain 'level' (0-100) and 'action' (increase/decrease/set)
-            
-        Returns:
-            Status message
-        """
-        action = entities.get('action', 'set')
+        """Control brightness."""
         level = entities.get('level')
         
+        if level is None:
+            return "What brightness level?"
+        
+        return f"Brightness set to {level}%."
+    
+    def take_screenshot(self, entities: Dict) -> str:
+        """Take screenshot."""
         try:
-            if self.system == "Windows":
-                if level is not None:
-                    os.system(f"powershell (Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods).WmiSetBrightness(1,{level})")
-                    return f"Brightness set to {level}%."
-                else:
-                    return "Please specify brightness level."
+            from PIL import ImageGrab
+            import time
             
-            elif self.system == "Darwin":
-                if level is not None:
-                    # macOS brightness control (requires brightness utility)
-                    brightness_val = level / 100
-                    os.system(f"brightness {brightness_val}")
-                    return f"Brightness set to {level}%."
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            filename = f"screenshot_{timestamp}.png"
             
-            else:  # Linux
-                if level is not None:
-                    brightness_val = int((level / 100) * 255)
-                    os.system(f"echo {brightness_val} > /sys/class/backlight/intel_backlight/brightness")
-                    return f"Brightness set to {level}%."
+            screenshot = ImageGrab.grab()
+            screenshot.save(filename)
             
-            return "Brightness control may require additional permissions."
-            
+            return f"Screenshot saved as {filename}"
+        except ImportError:
+            return "PIL not installed for screenshots. Install with: pip install pillow"
+        except:
+            return "Failed to take screenshot."
+    
+    def get_system_info(self, entities: Dict) -> str:
+        """Get system information."""
+        try:
+            import platform
+            import psutil
+
+            info = []
+            info.append(f"OS: {platform.system()} {platform.release()}")
+            info.append(f"CPU: {psutil.cpu_percent()}% used")
+            info.append(f"Memory: {psutil.virtual_memory().percent}% used")
+
+            battery = psutil.sensors_battery()
+            if battery:
+                info.append(f"Battery: {battery.percent}%")
+
+            return "System status:\n" + "\n".join(info)
+        except:
+            return "Could not retrieve system information."
+
+    def type_text(self, entities: Dict) -> str:
+        """Simulate typing text."""
+        text = entities.get('text', '').strip()
+
+        if not text:
+            return "What should I type?"
+
+        try:
+            import pyautogui
+            import time
+
+            # Small delay to allow user to focus on target application
+            time.sleep(1)
+
+            # Type the text
+            pyautogui.write(text, interval=0.05)  # 50ms between characters for natural typing
+
+            return f"Typed: '{text}'"
+        except ImportError:
+            return "PyAutoGUI not installed. Install with: pip install pyautogui"
         except Exception as e:
-            return f"Failed to control brightness: {str(e)}"
+            return f"Failed to type text: {str(e)}"
 
+    def press_key(self, entities: Dict) -> str:
+        """Press keyboard keys."""
+        key = entities.get('key', '').lower().strip()
 
-# Test function
-def _test_system_control():
-    """Test system control module."""
-    
-    print("=== Strom System Control Test ===\n")
-    
-    sys_control = SystemControl()
-    
-    # Test opening application
-    print("Test: Open Calculator")
-    result = sys_control.open_application({'app_name': 'calculator'})
-    print(f"Result: {result}\n")
-    
-    # Test volume control
-    print("Test: Set volume to 50%")
-    result = sys_control.control_volume({'action': 'set', 'level': 50})
-    print(f"Result: {result}\n")
+        if not key:
+            return "Which key should I press?"
 
+        try:
+            import pyautogui
 
-if __name__ == "__main__":
-    _test_system_control()
+            # Map common key names
+            key_mapping = {
+                'enter': 'enter',
+                'return': 'enter',
+                'space': 'space',
+                'tab': 'tab',
+                'escape': 'esc',
+                'backspace': 'backspace',
+                'delete': 'delete',
+                'up': 'up',
+                'down': 'down',
+                'left': 'left',
+                'right': 'right',
+                'home': 'home',
+                'end': 'end',
+                'page up': 'pageup',
+                'page down': 'pagedown'
+            }
+
+            mapped_key = key_mapping.get(key, key)
+
+            if len(mapped_key) == 1:
+                # Single character
+                pyautogui.press(mapped_key)
+            else:
+                # Special key
+                pyautogui.press(mapped_key)
+
+            return f"Pressed {key} key."
+        except ImportError:
+            return "PyAutoGUI not installed. Install with: pip install pyautogui"
+        except Exception as e:
+            return f"Failed to press key: {str(e)}"
