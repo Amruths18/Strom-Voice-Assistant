@@ -1,4 +1,4 @@
-<h1> Working On Implement Conditions </h1>
+<h1> Working On Implement  </h1>
 # Strom AI Assistant 🎤
 
 Voice-powered desktop AI assistant with offline-first design.
