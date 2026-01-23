@@ -4,6 +4,7 @@ Routes intents to appropriate modules
 """
 
 from typing import Dict, Any
+import random
 
 
 class CommandRouter:
@@ -58,7 +59,9 @@ class CommandRouter:
             'greeting': ('router', 'handle_greeting'),
             'thanks': ('router', 'handle_thanks'),
             'goodbye': ('router', 'handle_goodbye'),
-            'help': ('router', 'handle_help')
+            'goodbye': ('router', 'handle_goodbye'),
+            'help': ('router', 'handle_help'),
+            'identity': ('router', 'handle_identity')
         }
     
     def route(self, intent: str, entities: Dict) -> str:
@@ -86,14 +89,56 @@ class CommandRouter:
             return "Sorry, I encountered an error."
     
     def _handle_internal(self, command: str) -> str:
-        """Handle conversation commands."""
+        """Handle conversation commands with human-like variety."""
+        
+        greetings = [
+            "Hello! I'm Strom. How can I help you today?",
+            "Hi there! What's on your mind?",
+            "Hey! Ready to help. What do you need?",
+            "Greetings! How can I be of assistance?",
+            "Hello! I'm listening."
+        ]
+        
+        thanks = [
+            "You're very welcome!",
+            "No problem at all!",
+            "Happy to help!",
+            "Anytime!",
+            "Glad I could be of service."
+        ]
+        
+        goodbyes = [
+            "Goodbye! Have a great day!",
+            "See you later! Take care.",
+            "Bye for now!",
+            "Catch you later!",
+            "Signing off. Have a good one!"
+        ]
+        
+        identities = [
+            "I'm Strom, your AI desktop assistant.",
+            "My name is Strom. I'm here to help you navigate your system.",
+            "I am Strom, an intelligent voice assistant designed for you.",
+            "You can call me Strom."
+        ]
+        
+        help_msgs = [
+            "I can control your apps, set reminders, check the weather, or just chat. What do you need?",
+            "Try asking me to 'open calculator', 'set a timer', or 'search for python tutorials'.",
+            "I'm pretty versatile! I can handle system tasks, manage your to-do list, or answer general questions.",
+            "Just speak naturally. I can help with system controls, productivity tasks, and information."
+        ]
+
         responses = {
-            'handle_greeting': "Hello! I'm Strom. How can I help?",
-            'handle_thanks': "You're welcome!",
-            'handle_goodbye': "Goodbye! Have a great day!",
-            'handle_help': "I can help with system control, tasks, messaging, and information. Just ask!"
+            'handle_greeting': greetings,
+            'handle_thanks': thanks,
+            'handle_goodbye': goodbyes,
+            'handle_help': help_msgs,
+            'handle_identity': identities
         }
-        return responses.get(command, "I'm here to help.")
+        
+        options = responses.get(command, ["I'm here to help."])
+        return random.choice(options)
 
 
 if __name__ == "__main__":
