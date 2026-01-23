@@ -23,7 +23,7 @@ print(f"   ✅ Python {sys.version.split()[0]}")
 
 # Check packages
 print("\n2️⃣  Checking dependencies...")
-required = ['vosk', 'pyaudio', 'pyttsx3', 'numpy', 'pyyaml', 'requests', 'psutil']
+required = ['vosk', 'pyaudio', 'pyttsx3', 'numpy', 'yaml', 'requests', 'psutil']
 missing = []
 
 for pkg in required:

@@ -1,0 +1,9 @@
+vosk
+pyaudio
+pyttsx3
+requests
+psutil
+pyyaml
+numpy
+customtkinter
+pillow

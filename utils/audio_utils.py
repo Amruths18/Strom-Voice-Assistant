@@ -134,7 +134,7 @@ class AudioUtils:
                 frames.append(data)
                 
                 audio_data = np.frombuffer(data, dtype=np.int16)
-                level = np.sqrt(np.mean(audio_data**2))
+                level = np.sqrt(np.mean(audio_data.astype(np.float64)**2))
                 bars = int(level / 100)
                 
                 print(f"\r[AudioUtils] Level: {'█' * min(bars, 40)} {int(level):4d}", end="", flush=True)
