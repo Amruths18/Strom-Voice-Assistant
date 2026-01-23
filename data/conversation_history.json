@@ -1,0 +1,16 @@
+[
+  {
+    "timestamp": "2026-01-23T12:16:51.411236",
+    "user_input": "hey gotten inner",
+    "intent": "greeting",
+    "entities": {},
+    "response": "Hello! I'm Strom. How can I help?"
+  },
+  {
+    "timestamp": "2026-01-23T12:21:50.858640",
+    "user_input": "oh boy",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  }
+]

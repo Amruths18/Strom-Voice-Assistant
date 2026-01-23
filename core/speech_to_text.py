@@ -1,6 +1,7 @@
 """
 Enhanced Speech-to-Text Module for Strom AI Assistant
 Converts voice to text with silence detection
+Fixed NaN handling
 """
 
 import json
@@ -27,24 +28,18 @@ class SpeechToText:
         sample_rate: int = 16000,
         whisper_api_key: Optional[str] = None,
         use_online: bool = True,
-        silence_threshold: int = 300,
-        silence_duration: float = 1.5
+        silence_threshold: int = 500,
+        silence_duration: float = 2.0
     ):
         """Initialize STT engine."""
         self.sample_rate = sample_rate
         self.whisper_api_key = whisper_api_key
         self.use_online = use_online
         self.chunk_size = 4000
-        
-        # Enhanced silence detection parameters
+
+        # Silence detection
         self.silence_threshold = silence_threshold
-        self.silence_duration = silence_duration
-        self.min_speech_duration = 0.5  # Minimum speech to detect
-        self.max_speech_duration = 15   # Maximum recording time
-        
-        # Audio preprocessing
-        self.noise_reduction = True
-        self.auto_gain = True
+        self.silence_duration = silence_duration  # seconds
         
         # Initialize Vosk
         try:
@@ -77,42 +72,44 @@ class SpeechToText:
             return False
     
     def get_audio_level(self, data: bytes) -> float:
-        """Calculate RMS audio level."""
+        """
+        Calculate RMS audio level with NaN protection.
+        """
         try:
             audio_data = np.frombuffer(data, dtype=np.int16)
+            
+            # Check if data is valid
             if len(audio_data) == 0:
                 return 0.0
             
-            # Calculate RMS, handle potential NaN/inf values
-            rms = np.sqrt(np.mean(audio_data.astype(np.float64)**2))
-            return rms if np.isfinite(rms) else 0.0
-        except:
+            # Remove any NaN or inf values
+            audio_data = audio_data[np.isfinite(audio_data)]
+            
+            if len(audio_data) == 0:
+                return 0.0
+            
+            # Calculate RMS with safety checks
+            squared = audio_data.astype(np.float64) ** 2
+            mean_squared = np.mean(squared)
+            
+            # Check for invalid values
+            if mean_squared < 0 or np.isnan(mean_squared) or np.isinf(mean_squared):
+                return 0.0
+            
+            rms = np.sqrt(mean_squared)
+            
+            # Final validation
+            if np.isnan(rms) or np.isinf(rms):
+                return 0.0
+            
+            return float(rms)
+            
+        except Exception as e:
             return 0.0
     
-    def _detect_stop_command(self, audio_data: bytes) -> bool:
-        """Detect stop command in audio data."""
-        try:
-            # Quick recognition for stop command
-            temp_recognizer = KaldiRecognizer(self.model, self.sample_rate)
-            temp_recognizer.SetWords(True)
-            
-            if temp_recognizer.AcceptWaveform(audio_data):
-                result = json.loads(temp_recognizer.Result())
-                text = result.get('text', '').lower().strip()
-                
-                # Check for stop words
-                stop_words = ['stop', 'cancel', 'quit', 'exit', 'enough']
-                for word in stop_words:
-                    if word in text:
-                        return True
-            
-            return False
-        except:
-            return False
-    
     def record_audio_with_silence_detection(self, max_duration: int = 10) -> str:
-        """Record audio with enhanced silence detection."""
-        print("\n[STT] 🎤 Listening... Speak now! (Say 'stop' to cancel)")
+        """Record audio with silence detection."""
+        print("\n[STT] 🎤 Listening... Speak now!")
         
         if self.input_device_index is None:
             print("[STT] ❌ No input device")
@@ -133,60 +130,42 @@ class SpeechToText:
         
         frames = []
         silent_chunks = 0
-        speech_chunks = 0
         chunks_per_second = self.sample_rate / self.chunk_size
         silence_threshold_chunks = int(self.silence_duration * chunks_per_second)
-        min_speech_chunks = int(self.min_speech_duration * chunks_per_second)
         
         start_time = time.time()
         speech_detected = False
-        noise_levels = []  # Track noise levels for dynamic threshold
         
         print("[STT] Level: ", end="", flush=True)
         
         try:
-            while (time.time() - start_time) < self.max_speech_duration:
+            while (time.time() - start_time) < max_duration:
                 data = stream.read(self.chunk_size, exception_on_overflow=False)
                 frames.append(data)
                 
                 level = self.get_audio_level(data)
-                noise_levels.append(level)
                 
-                # Dynamic threshold adjustment based on recent noise
-                if len(noise_levels) > 10:
-                    noise_levels.pop(0)
-                    avg_noise = sum(noise_levels) / len(noise_levels)
-                    dynamic_threshold = max(self.silence_threshold, avg_noise * 1.2)
-                else:
-                    dynamic_threshold = self.silence_threshold
-                
-                # Visual feedback
-                bars = int(level / 200)  # Adjusted for better visualization
-                status = "🎤" if level > dynamic_threshold else "🤫"
-                print(f"\r[STT] {status} Level: {'█' * min(bars, 30)} {int(level):4d}", end="", flush=True)
+                # Visual feedback with error protection
+                try:
+                    bars = int(level / 100) if level > 0 else 0
+                    bars = min(bars, 40)
+                    level_int = int(level) if not np.isnan(level) and not np.isinf(level) else 0
+                    print(f"\r[STT] Level: {'█' * bars}{' ' * (40 - bars)} {level_int:4d}", end="", flush=True)
+                except:
+                    print(f"\r[STT] Level: Recording...    ", end="", flush=True)
                 
                 # Detect speech/silence
-                if level > dynamic_threshold:
+                if level > self.silence_threshold:
                     silent_chunks = 0
-                    speech_chunks += 1
                     speech_detected = True
                 else:
                     if speech_detected:
                         silent_chunks += 1
                 
-                # Stop on silence after minimum speech
-                if speech_detected and speech_chunks >= min_speech_chunks and silent_chunks > silence_threshold_chunks:
+                # Stop on silence
+                if speech_detected and silent_chunks > silence_threshold_chunks:
                     print("\n[STT] ✅ Silence detected")
                     break
-                
-                # Check for stop command
-                if len(frames) % 10 == 0:  # Check every ~0.4 seconds
-                    recent_frames = frames[-10:] if len(frames) >= 10 else frames
-                    if self._detect_stop_command(b"".join(recent_frames)):
-                        print("\n[STT] 🛑 Stop command detected")
-                        stream.stop_stream()
-                        stream.close()
-                        return ""
             
             print()
             
@@ -199,8 +178,8 @@ class SpeechToText:
         stream.stop_stream()
         stream.close()
         
-        if not speech_detected or speech_chunks < min_speech_chunks:
-            print("[STT] ⚠️ No sufficient speech detected")
+        if not speech_detected:
+            print("[STT] ⚠️ No speech detected")
             return ""
         
         # Save to temp file
@@ -216,7 +195,7 @@ class SpeechToText:
         wf.close()
         
         duration = len(frames) * self.chunk_size / self.sample_rate
-        print(f"[STT] ✅ Recorded {duration:.1f}s audio")
+        print(f"[STT] ✅ Recorded {duration:.1f}s")
         
         return temp_path
     

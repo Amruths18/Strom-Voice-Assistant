@@ -21,9 +21,40 @@ if sys.version_info < (3, 8):
     sys.exit(1)
 print(f"   ✅ Python {sys.version.split()[0]}")
 
+# Request microphone permission
+def request_microphone_permission():
+    """Request microphone permission on Windows."""
+    try:
+        # Load user32.dll
+        user32 = ctypes.WinDLL('user32', use_last_error=True)
+
+        # Define the message box function
+        MessageBox = user32.MessageBoxW
+        MessageBox.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.UINT]
+        MessageBox.restype = ctypes.c_int
+
+        # Show permission request dialog
+        result = MessageBox(
+            None,
+            "This application needs microphone access to test audio devices.\n\n"
+            "Please grant microphone permission in the next dialog or Windows Settings.",
+            "Microphone Permission Required",
+            0x40 | 0x1  # MB_ICONINFORMATION | MB_OKCANCEL
+        )
+
+        if result == 1:  # IDOK
+            print("   ✅ Microphone permission requested")
+        else:
+            print("   ⚠️  Microphone permission request cancelled")
+    except Exception as e:
+        print(f"   ⚠️  Could not request microphone permission: {str(e)}")
+
+print("\n6️⃣  Requesting microphone permission...")
+request_microphone_permission()
+
 # Check packages
 print("\n2️⃣  Checking dependencies...")
-required = ['vosk', 'pyaudio', 'pyttsx3', 'numpy', 'pyyaml', 'requests', 'psutil']
+required = ['vosk', 'pyaudio', 'pyttsx3', 'numpy', 'yaml', 'requests', 'psutil']
 missing = []
 
 for pkg in required:
