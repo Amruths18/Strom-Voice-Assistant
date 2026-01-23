@@ -39,6 +39,11 @@ class StromAssistant:
         print("  Voice-Powered Desktop Assistant")
         print("="*60 + "\n")
         
+        # GUI Callbacks
+        self.on_status_change = None
+        self.on_user_input = None
+        self.on_assistant_response = None
+        
         self.config = self._load_config()
         self.api_config = self._load_api_config()
         
@@ -152,6 +157,8 @@ class StromAssistant:
     def speak(self, text: str):
         """Make Strom speak."""
         print(f"\n🗣️  Strom: {text}\n")
+        if self.on_assistant_response:
+            self.on_assistant_response(text)
         self.tts.speak(text)
     
     def listen(self) -> str:
@@ -164,6 +171,8 @@ class StromAssistant:
                 text = self.stt.listen_and_transcribe(duration=self.config.get('voice', {}).get('stt', {}).get('recording_duration', 10))
                 if text:
                     print(f"👤 You: {text}")
+                    if self.on_user_input:
+                        self.on_user_input(text)
                     return text
                 else:
                     retry_count += 1
@@ -226,6 +235,9 @@ class StromAssistant:
                     self.hotword.is_active = True
                     
                     greeting = self.config.get('behavior', {}).get('greeting_message', "Hello! I'm Strom. How can I help?")
+                    greeting = self.config.get('behavior', {}).get('greeting_message', "Hello! I'm Strom. How can I help?")
+                    if self.on_status_change:
+                        self.on_status_change("Listening...")
                     self.speak(greeting)
                     
                     # Listen for command with timeout
@@ -250,12 +262,16 @@ class StromAssistant:
                         standby_msg = "Standing by."
                     
                     print(f"\n💤 {standby_msg} Say '{self.config['voice']['wake_word']}' to wake...\n")
+                    if self.on_status_change:
+                        self.on_status_change("Standing by")
                 
                 elif detection == 'stop' and self.is_active:
                     self.is_active = False
                     self.hotword.is_active = False
                     self.speak("Okay, standing by.")
                     print(f"\n💤 Say '{self.config['voice']['wake_word']}' to wake...\n")
+                    if self.on_status_change:
+                        self.on_status_change("Standing by")
                 
                 # Small delay to prevent CPU hogging
                 time.sleep(0.01)

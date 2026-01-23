@@ -143,6 +143,7 @@ class SpeechToText:
         noise_levels = []  # Track noise levels for dynamic threshold
         
         print("[STT] Level: ", end="", flush=True)
+        print(f"\n[STT] Debug: Starting loop. Threshold: {self.silence_threshold}")
         
         try:
             while (time.time() - start_time) < self.max_speech_duration:
@@ -156,9 +157,12 @@ class SpeechToText:
                 if len(noise_levels) > 10:
                     noise_levels.pop(0)
                     avg_noise = sum(noise_levels) / len(noise_levels)
-                    dynamic_threshold = max(self.silence_threshold, avg_noise * 1.2)
                 else:
                     dynamic_threshold = self.silence_threshold
+                
+                # Debug logging every 10 chunks to avoid spamming but confirm liveness
+                if len(frames) % 10 == 0:
+                   print(f"\r[STT] Debug: Level={int(level)} Thresh={int(dynamic_threshold)} SpeechChunks={speech_chunks} SilentChunks={silent_chunks}  ", end="", flush=True)
                 
                 # Visual feedback
                 bars = int(level / 200)  # Adjusted for better visualization
