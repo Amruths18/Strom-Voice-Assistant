@@ -56,12 +56,19 @@ class StromAssistant:
         self.is_active = False
         self.is_running = True
         
-        print("\n[Strom] ✅ Ready!\n")
+        print("\n[Strom] ✅ Ready (Text Mode)!\n")
+        
+        self.is_voice_available = False
+        self.is_voice_loading = False
 
-        # Voice self-introduction
-        self._voice_introduction()
+        # Voice self-introduction if available
+        # Voice introduction will happen after voice load
+        # if self.is_voice_available:
+        #      self._voice_introduction()
+        # else:
+        #      print("\n[Strom] ⚠️ Voice components unavailable. Running in Text-Only mode.\n")
 
-        signal.signal(signal.SIGINT, self._signal_handler)
+        # signal.signal(signal.SIGINT, self._signal_handler) # Moved to run()
     
     def _load_config(self) -> dict:
         """Load configuration."""
@@ -95,35 +102,72 @@ class StromAssistant:
         }
     
     def _initialize_core(self):
-        """Initialize core components."""
-        voice = self.config.get('voice', {})
-        tts_cfg = voice.get('tts', {})
-        stt_cfg = voice.get('stt', {})
+        """Initialize core components (Text only first)."""
+        self._initialize_text_core()
         
-        self.hotword = HotwordListener(
-            wake_word=voice.get('wake_word', 'hey strom'),
-            stop_word=voice.get('stop_word', 'stop strom'),
-            model_path=stt_cfg.get('offline_model_path', 'model')
-        )
-        
-        self.stt = SpeechToText(
-            model_path=stt_cfg.get('offline_model_path', 'model'),
-            use_online=stt_cfg.get('use_online', False),
-            silence_threshold=stt_cfg.get('silence_threshold', 300),
-            silence_duration=stt_cfg.get('silence_duration', 1.5)
-        )
-        
-        self.tts = TextToSpeech(
-            rate=tts_cfg.get('rate', 150),
-            volume=tts_cfg.get('volume', 0.9),
-            voice_gender=tts_cfg.get('voice_gender', 'female')
-        )
-        
+    def _initialize_text_core(self):
+        """Initialize text-based components."""
+        print("[Strom] Initializing text components...")
         self.nlp = NLPEngine()
         self.router = CommandRouter()
         self.conv_manager = ConversationManager()
         self.security = Security()
         self.validator = Validator()
+        # Placeholders for voice
+        self.hotword = None
+        self.stt = None
+        self.tts = None
+
+    def initialize_voice_core(self):
+        """Initialize voice components (Heavy operation)."""
+        if self.is_voice_available or self.is_voice_loading:
+            return
+
+        self.is_voice_loading = True
+        print("[Strom] Initializing voice components (Lazy Load)...")
+        
+        voice = self.config.get('voice', {})
+        tts_cfg = voice.get('tts', {})
+        stt_cfg = voice.get('stt', {})
+        
+        try:
+            # Load TTS first as it is lighter
+            self.tts = TextToSpeech(
+                rate=tts_cfg.get('rate', 150),
+                volume=tts_cfg.get('volume', 0.9),
+                voice_gender=tts_cfg.get('voice_gender', 'female')
+            )
+            
+            # Load STT / Hotword (Heavy)
+            self.hotword = HotwordListener(
+                wake_word=voice.get('wake_word', 'hey strom'),
+                stop_word=voice.get('stop_word', 'stop strom'),
+                model_path=stt_cfg.get('offline_model_path', 'model')
+            )
+            
+            self.stt = SpeechToText(
+                model_path=stt_cfg.get('offline_model_path', 'model'),
+                use_online=stt_cfg.get('use_online', False),
+                silence_threshold=stt_cfg.get('silence_threshold', 300),
+                silence_duration=stt_cfg.get('silence_duration', 1.5)
+            )
+            
+            self.is_voice_available = True
+            print("[Strom] ✅ Voice components loaded!")
+            self._voice_introduction()
+            
+        except Exception as e:
+            print(f"[Strom] ⚠️ Voice initialization failed: {str(e)}")
+            print("[Strom] Continuing in text-only mode.")
+            self.is_voice_available = False
+            # Clean up partials
+            if self.hotword: self.hotword = None
+            if self.stt: self.stt = None
+            # Keep TTS if it loaded? Maybe, but simpler to disable all.
+            # self.tts = None 
+            
+        finally:
+            self.is_voice_loading = False
     
     def _initialize_modules(self):
         """Initialize modules."""
@@ -145,7 +189,8 @@ class StromAssistant:
         """Voice self-introduction."""
         intro_text = "Hello! Im Strom, your smart voice assistant. Speak your command, and lets get started."
         print(f"\n🎤 {intro_text}")
-        self.tts.speak(intro_text)
+        if self.tts:
+            self.tts.speak(intro_text)
 
     def _signal_handler(self, signum, frame):
         """Handle shutdown."""
@@ -159,7 +204,8 @@ class StromAssistant:
         print(f"\n🗣️  Strom: {text}\n")
         if self.on_assistant_response:
             self.on_assistant_response(text)
-        self.tts.speak(text)
+        if self.tts:
+            self.tts.speak(text)
     
     def listen(self) -> str:
         """Listen for command with enhanced error handling."""
@@ -168,6 +214,9 @@ class StromAssistant:
         
         while retry_count < max_retries:
             try:
+                if not self.stt:
+                    return ""
+                    
                 text = self.stt.listen_and_transcribe(duration=self.config.get('voice', {}).get('stt', {}).get('recording_duration', 10))
                 if text:
                     print(f"👤 You: {text}")
@@ -224,6 +273,15 @@ class StromAssistant:
         print("  Press Ctrl+C to exit")
         print("="*60 + "\n")
         
+        if not self.is_voice_available:
+            print("[Strom] Voice mode unavailable. Waiting for GUI/API commands...")
+            try:
+                while self.is_running:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                pass
+            return
+
         self.hotword.start_listening()
         
         try:
@@ -288,9 +346,9 @@ class StromAssistant:
         print("\n[Strom] Cleaning up...")
         
         try:
-            self.hotword.cleanup()
-            self.stt.cleanup()
-            self.tts.cleanup()
+            if self.hotword: self.hotword.cleanup()
+            if self.stt: self.stt.cleanup()
+            if self.tts: self.tts.cleanup()
             print("[Strom] ✅ Cleanup complete")
         except:
             pass
@@ -336,11 +394,12 @@ def check_vosk_model():
 
 def main():
     """Main entry point."""
-    if not check_dependencies():
-        sys.exit(1)
+    # Remove strict dependency checks that kill the app
+    # if not check_dependencies():
+    #     sys.exit(1)
     
-    if not check_vosk_model():
-        sys.exit(1)
+    # if not check_vosk_model():
+    #     sys.exit(1)
     
     os.makedirs('data', exist_ok=True)
     os.makedirs('logs', exist_ok=True)

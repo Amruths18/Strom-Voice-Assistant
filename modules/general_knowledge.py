@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Dict, Optional
 import webbrowser
 import urllib.parse
+import random
 
 
 class GeneralKnowledge:
@@ -31,12 +32,28 @@ class GeneralKnowledge:
     def get_time(self, entities: Dict) -> str:
         """Get current time."""
         now = datetime.now()
-        return f"It's {now.strftime('%I:%M %p')}."
+        time_str = now.strftime('%I:%M %p')
+        
+        templates = [
+            f"It's currently {time_str}.",
+            f"The time is {time_str}.",
+            f"It is {time_str} right now.",
+            f"Check the clock! It's {time_str}."
+        ]
+        return random.choice(templates)
     
     def get_date(self, entities: Dict) -> str:
         """Get current date."""
         now = datetime.now()
-        return f"Today is {now.strftime('%A, %B %d, %Y')}."
+        date_str = now.strftime('%A, %B %d, %Y')
+        
+        templates = [
+            f"Today is {date_str}.",
+            f"It's {date_str}.",
+            f"The date today is {date_str}.",
+            f"We are in {now.strftime('%B')}, specifically {date_str}."
+        ]
+        return random.choice(templates)
     
     def get_weather(self, entities: Dict) -> str:
         """Get weather."""
@@ -68,9 +85,16 @@ class GeneralKnowledge:
         try:
             url = f"https://www.google.com/search?q={urllib.parse.quote(query)}"
             webbrowser.open(url)
-            return f"Searching for: {query}"
+            
+            templates = [
+                f"Searching the web for '{query}'...",
+                f"I've looked that up for you. Check your browser for '{query}'.",
+                f"Here is what I found for '{query}'.",
+                f"Let's see what Google says about '{query}'."
+            ]
+            return random.choice(templates)
         except:
-            return "Failed to open browser."
+            return "I tried to open the browser, but something went wrong."
     
     def wikipedia_search(self, entities: Dict) -> str:
         """Wikipedia search."""
@@ -91,4 +115,10 @@ class GeneralKnowledge:
     
     def answer_query(self, entities: Dict) -> str:
         """Answer general query."""
-        return "I'm not sure about that. Would you like me to search?"
+        templates = [
+            "I'm not entirely sure about that. Should I search the web for you?",
+            "That's outside my knowledge base right now. Want me to Google it?",
+            "I don't have the answer to that yet. Would a web search help?",
+            "Hmm, interesting question. I can look it up online if you'd like."
+        ]
+        return random.choice(templates)

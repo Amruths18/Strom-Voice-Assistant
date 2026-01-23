@@ -1,0 +1,206 @@
+[
+  {
+    "timestamp": "2026-01-23T13:19:19.222638",
+    "user_input": "Hello",
+    "intent": "greeting",
+    "entities": {},
+    "response": "Hello! I'm Strom. How can I help?"
+  },
+  {
+    "timestamp": "2026-01-23T13:19:33.529894",
+    "user_input": "Hello",
+    "intent": "greeting",
+    "entities": {},
+    "response": "Hello! I'm Strom. How can I help?"
+  },
+  {
+    "timestamp": "2026-01-23T13:19:35.446108",
+    "user_input": "Hello",
+    "intent": "greeting",
+    "entities": {},
+    "response": "Hello! I'm Strom. How can I help?"
+  },
+  {
+    "timestamp": "2026-01-23T13:24:25.650849",
+    "user_input": "hey",
+    "intent": "greeting",
+    "entities": {},
+    "response": "Hello! I'm Strom. How can I help?"
+  },
+  {
+    "timestamp": "2026-01-23T13:24:51.152114",
+    "user_input": "what is the date today",
+    "intent": "date",
+    "entities": {},
+    "response": "Today is Friday, January 23, 2026."
+  },
+  {
+    "timestamp": "2026-01-23T13:25:04.935453",
+    "user_input": "hey",
+    "intent": "greeting",
+    "entities": {},
+    "response": "Hello! I'm Strom. How can I help?"
+  },
+  {
+    "timestamp": "2026-01-23T13:25:13.090380",
+    "user_input": "what is date today",
+    "intent": "date",
+    "entities": {},
+    "response": "Today is Friday, January 23, 2026."
+  },
+  {
+    "timestamp": "2026-01-23T13:25:26.077439",
+    "user_input": "what is time now in india",
+    "intent": "time",
+    "entities": {},
+    "response": "It's 01:25 PM."
+  },
+  {
+    "timestamp": "2026-01-23T13:25:34.976367",
+    "user_input": "what is your name",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T13:25:49.179829",
+    "user_input": "open whats app",
+    "intent": "open_app",
+    "entities": {
+      "app_name": "whats"
+    },
+    "response": "Opening whats..."
+  },
+  {
+    "timestamp": "2026-01-23T13:26:17.924325",
+    "user_input": "why does whats dame know huh",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T13:26:33.972456",
+    "user_input": "hellow",
+    "intent": "greeting",
+    "entities": {},
+    "response": "Hello! I'm Strom. How can I help?"
+  },
+  {
+    "timestamp": "2026-01-23T13:29:47.158581",
+    "user_input": "hey",
+    "intent": "greeting",
+    "entities": {},
+    "response": "Hello! I'm Strom. How can I help?"
+  },
+  {
+    "timestamp": "2026-01-23T13:29:59.956592",
+    "user_input": "write a code for python",
+    "intent": "type_text",
+    "entities": {
+      "text": "a code for python"
+    },
+    "response": "I didn't understand that."
+  },
+  {
+    "timestamp": "2026-01-23T13:30:09.631782",
+    "user_input": "what is the wether now",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T13:30:15.234764",
+    "user_input": "yes",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T13:30:23.051834",
+    "user_input": "yes",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T13:30:32.289255",
+    "user_input": "what are you",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T13:30:40.166921",
+    "user_input": "what is the time now",
+    "intent": "time",
+    "entities": {},
+    "response": "It's 01:30 PM."
+  },
+  {
+    "timestamp": "2026-01-23T13:30:48.471676",
+    "user_input": "whats my name",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T13:30:55.050302",
+    "user_input": "how are you",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T13:34:51.548029",
+    "user_input": "hi",
+    "intent": "greeting",
+    "entities": {},
+    "response": "Hello! I'm listening."
+  },
+  {
+    "timestamp": "2026-01-23T13:34:57.454201",
+    "user_input": "how are you",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I don't have the answer to that yet. Would a web search help?"
+  },
+  {
+    "timestamp": "2026-01-23T13:35:11.974945",
+    "user_input": "what are you",
+    "intent": "general_query",
+    "entities": {},
+    "response": "That's outside my knowledge base right now. Want me to Google it?"
+  },
+  {
+    "timestamp": "2026-01-23T13:35:18.594032",
+    "user_input": "help me",
+    "intent": "help",
+    "entities": {},
+    "response": "I can control your apps, set reminders, check the weather, or just chat. What do you need?"
+  },
+  {
+    "timestamp": "2026-01-23T13:35:27.399112",
+    "user_input": "open whats app",
+    "intent": "open_app",
+    "entities": {
+      "app_name": "whats"
+    },
+    "response": "Opening whats..."
+  },
+  {
+    "timestamp": "2026-01-23T13:35:47.250946",
+    "user_input": "hi",
+    "intent": "greeting",
+    "entities": {},
+    "response": "Hi there! What's on your mind?"
+  },
+  {
+    "timestamp": "2026-01-23T13:36:01.309322",
+    "user_input": "open PyCharm",
+    "intent": "open_app",
+    "entities": {
+      "app_name": "pycharm"
+    },
+    "response": "Opening pycharm..."
+  }
+]

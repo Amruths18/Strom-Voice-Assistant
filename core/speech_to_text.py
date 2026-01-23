@@ -53,7 +53,7 @@ class SpeechToText:
             print(f"[STT] ✅ Model loaded")
         except Exception as e:
             print(f"[STT] ❌ Failed to load model: {str(e)}")
-            sys.exit(1)
+            raise Exception("Vosk model not found.")
         
         # PyAudio
         self.audio = pyaudio.PyAudio()
