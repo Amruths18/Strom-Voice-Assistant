@@ -50,7 +50,8 @@ class NLPEngine:
             'greeting': ['hello', 'hi', 'hey'],
             'thanks': ['thank', 'thanks'],
             'goodbye': ['bye', 'goodbye'],
-            'help': ['help', 'what can you do']
+            'help': ['help', 'what can you do'],
+            'identity': ['who are you', 'your name', 'call you']
         }
         
         self.app_aliases = {

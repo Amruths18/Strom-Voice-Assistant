@@ -12,12 +12,17 @@ class StromGUI(customtkinter.CTk):
         super().__init__()
 
         # Configure window
+        # Configure window
         self.title("Strom AI Assistant")
-        self.geometry("800x600")
+        self.geometry("1000x700")
         
-        # Grid layout
+        # Configure grid weight
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
+
+        # Fonts
+        self.font_bold = customtkinter.CTkFont(size=14, weight="bold")
+        self.font_msg = customtkinter.CTkFont(size=13)
 
         # Sidebar (Left)
         self.sidebar_frame = customtkinter.CTkFrame(self, width=200, corner_radius=0)
@@ -37,7 +42,8 @@ class StromGUI(customtkinter.CTk):
         self.stop_button.grid(row=3, column=0, padx=20, pady=10)
 
         # Chat Area (Right)
-        self.chat_frame = customtkinter.CTkScrollableFrame(self, label_text="Conversation")
+        # Chat Area (Right)
+        self.chat_frame = customtkinter.CTkScrollableFrame(self, label_text="Conversation", label_font=self.font_bold)
         self.chat_frame.grid(row=0, column=1, padx=20, pady=(20, 0), sticky="nsew")
         
         # Input Area (Bottom Right)
@@ -56,6 +62,51 @@ class StromGUI(customtkinter.CTk):
         self.strom_thread = None
         self.is_running = False
 
+        # Auto-initialize on start
+        self.after(100, self.init_strom_async)
+
+    def init_strom_async(self):
+        """Initialize Strom: Text first (fast), then Voice (slow)."""
+        threading.Thread(target=self._init_strom, daemon=True).start()
+    
+    def _init_strom(self):
+        self.status_label.configure(text="Status: Init Core...", text_color="orange")
+        try:
+            # 1. Initialize Text Core (Fast)
+            self.strom = StromAssistant()
+            
+            # Register callbacks immediately
+            self.strom.on_status_change = self.update_status
+            self.strom.on_user_input = self.add_user_message
+            self.strom.on_assistant_response = self.add_strom_message
+            
+            self.status_label.configure(text="Status: Text Ready (Loading Voice...)", text_color="yellow")
+            self.add_strom_message("Text core ready. Loading voice models...")
+            
+            # 2. Trigger Voice Load (Slow)
+            threading.Thread(target=self._load_voice_background, daemon=True).start()
+
+        except Exception as e:
+            self.status_label.configure(text=f"Error: {str(e)}", text_color="red")
+            print(f"[GUI] Init failed: {e}")
+
+    def _load_voice_background(self):
+        """Load voice components in background."""
+        try:
+            if self.strom:
+                 self.strom.initialize_voice_core()
+                 
+                 if self.strom.is_voice_available:
+                     self.status_label.configure(text="Status: Ready (Voice+Text)", text_color="green")
+                     self.start_button.configure(state="normal", text="Start Listening")
+                     self.add_strom_message("Voice systems online.")
+                 else:
+                     self.status_label.configure(text="Status: Text Only (Voice Failed)", text_color="orange")
+                     self.start_button.configure(state="disabled", text="Voice Unavailable")
+                     self.add_strom_message("Voice failed to load. Text only.")
+        except Exception as e:
+            print(f"[GUI] Background voice load error: {e}")
+
     def send_text(self, event=None):
         text = self.entry.get()
         if not text.strip():
@@ -71,19 +122,8 @@ class StromGUI(customtkinter.CTk):
     def process_text_thread(self, text):
         print(f"[GUI] Thread started for: {text}")
         if not self.strom:
-            print("[GUI] Initializing Strom...")
-            self.status_label.configure(text="Status: Initializing...", text_color="orange")
-            try:
-                self.strom = StromAssistant()
-                print("[GUI] Strom initialized")
-                # Register callbacks
-                self.strom.on_status_change = self.update_status
-                # on_user_input and on_assistant_response handled manually for text input
-                self.update_status("Standing by")
-            except Exception as e:
-                print(f"[GUI] Init error: {str(e)}")
-                self.update_status(f"Error: {str(e)}")
-                return
+             self.add_strom_message("System initializing... please wait.")
+             return
 
         try:
             self.status_label.configure(text="Status: Processing...", text_color="blue")
@@ -93,13 +133,15 @@ class StromGUI(customtkinter.CTk):
             response = self.strom.process(text)
             print(f"[GUI] Response: {response}")
             
-            self.add_strom_message(response)
+            # self.add_strom_message(response) # Removed to avoid duplicate (callback handles it)
             self.strom.speak(response)
             
-            if self.is_running:
+            if self.is_running and self.strom.is_voice_available:
                  self.update_status("Listening...")
-            else:
+            elif self.strom.is_voice_available:
                  self.update_status("Standing by")
+            else:
+                 self.status_label.configure(text="Status: Text Only Mode", text_color="yellow")
                  
         except Exception as e:
             print(f"[GUI] Process error: {str(e)}")
@@ -140,7 +182,11 @@ class StromGUI(customtkinter.CTk):
             self.strom.on_user_input = self.add_user_message
             self.strom.on_assistant_response = self.add_strom_message
             
-            self.update_status("Standing by")
+            if self.strom.is_voice_available:
+                self.update_status("Standing by")
+            else:
+                self.update_status("Text Only Mode")
+                return
             
             # Enable running flag again for re-start
             self.strom.is_running = True
@@ -161,12 +207,54 @@ class StromGUI(customtkinter.CTk):
         self.status_label.configure(text=f"Status: {status}", text_color=color)
 
     def add_user_message(self, text):
-        msg = customtkinter.CTkLabel(self.chat_frame, text=f"You: {text}", anchor="e", justify="right", fg_color=("gray85", "gray25"), corner_radius=10)
-        msg.pack(pady=5, padx=10, anchor="e", fill="x")
+        msg_frame = customtkinter.CTkFrame(self.chat_frame, fg_color="transparent")
+        msg_frame.pack(pady=5, padx=10, fill="x")
+        
+        # Spacer to push to right
+        customtkinter.CTkLabel(msg_frame, text="", width=50).pack(side="left", fill="x", expand=True)
+        
+        lbl = customtkinter.CTkLabel(
+            msg_frame, 
+            text=text, 
+            anchor="e", 
+            justify="right", 
+            fg_color="#1F6AA5", # Accent color
+            text_color="white",
+            corner_radius=15,
+            wraplength=400,
+            padx=15,
+            pady=10,
+            font=self.font_msg
+        )
+        lbl.pack(side="right", anchor="e")
+        
+        # Scroll to bottom
+        self.chat_frame._parent_canvas.yview_moveto(1.0)
 
     def add_strom_message(self, text):
-        msg = customtkinter.CTkLabel(self.chat_frame, text=f"Strom: {text}", anchor="w", justify="left", fg_color=("gray75", "gray35"), corner_radius=10)
-        msg.pack(pady=5, padx=10, anchor="w", fill="x")
+        msg_frame = customtkinter.CTkFrame(self.chat_frame, fg_color="transparent")
+        msg_frame.pack(pady=5, padx=10, fill="x")
+        
+        lbl = customtkinter.CTkLabel(
+            msg_frame, 
+            text=text, 
+            anchor="w", 
+            justify="left", 
+            fg_color="#333333", 
+            text_color="white",
+            corner_radius=15,
+            wraplength=400,
+            padx=15,
+            pady=10,
+            font=self.font_msg
+        )
+        lbl.pack(side="left", anchor="w")
+        
+        # Spacer to push to left (visual consistency)
+        customtkinter.CTkLabel(msg_frame, text="", width=50).pack(side="right", fill="x", expand=True)
+
+        # Scroll to bottom
+        self.chat_frame._parent_canvas.yview_moveto(1.0)
 
 if __name__ == "__main__":
     app = StromGUI()
