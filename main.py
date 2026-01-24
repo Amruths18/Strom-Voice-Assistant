@@ -279,6 +279,7 @@ class StromAssistant:
                 while self.is_running:
                     time.sleep(1)
             except KeyboardInterrupt:
+                # Allow graceful shutdown on Ctrl+C without additional handling
                 pass
             return
 
