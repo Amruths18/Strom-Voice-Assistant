@@ -113,10 +113,22 @@ class StromAssistant:
         self.conv_manager = ConversationManager()
         self.security = Security()
         self.validator = Validator()
-        # Placeholders for voice
+        self.validator = Validator()
+        
+        try:
+             # Initialize TTS here (Fast & Main Thread friendly)
+             self.tts = TextToSpeech(
+                rate=self.config.get('voice', {}).get('tts', {}).get('rate', 150),
+                volume=self.config.get('voice', {}).get('tts', {}).get('volume', 0.9),
+                voice_gender=self.config.get('voice', {}).get('tts', {}).get('voice_gender', 'female')
+             )
+        except Exception as e:
+             print(f"[Strom] ⚠️ TTS Init failed: {e}")
+             self.tts = None
+
+        # Placeholders for heavy voice components
         self.hotword = None
         self.stt = None
-        self.tts = None
 
     def initialize_voice_core(self):
         """Initialize voice components (Heavy operation)."""
@@ -131,12 +143,14 @@ class StromAssistant:
         stt_cfg = voice.get('stt', {})
         
         try:
-            # Load TTS first as it is lighter
-            self.tts = TextToSpeech(
-                rate=tts_cfg.get('rate', 150),
-                volume=tts_cfg.get('volume', 0.9),
-                voice_gender=tts_cfg.get('voice_gender', 'female')
-            )
+            # TTS is already initialized in text_core
+            if not self.tts:
+                 # Fallback if it failed earlier
+                 self.tts = TextToSpeech(
+                    rate=tts_cfg.get('rate', 150),
+                    volume=tts_cfg.get('volume', 0.9),
+                    voice_gender=tts_cfg.get('voice_gender', 'female')
+                 )
             
             # Load STT / Hotword (Heavy)
             self.hotword = HotwordListener(
