@@ -25,7 +25,7 @@ python test_audio_setup.py
 python main.py
 ```
 
-Say **"Hey Strom"** to activate!
+Say **"Hello Strom"** to activate!
 
 ## Voice Commands
 

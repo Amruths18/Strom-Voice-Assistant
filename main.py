@@ -52,21 +52,21 @@ class StromAssistant:
         self._initialize_modules()
         
         self.router.register_routes()
-        
+
         self.is_active = False
         self.is_running = True
-        
-        print("\n[Strom] ✅ Ready (Text Mode)!\n")
-        
+
         self.is_voice_available = False
         self.is_voice_loading = False
 
-        # Voice self-introduction if available
-        # Voice introduction will happen after voice load
-        # if self.is_voice_available:
-        #      self._voice_introduction()
-        # else:
-        #      print("\n[Strom] ⚠️ Voice components unavailable. Running in Text-Only mode.\n")
+        print("\n[Strom] Initializing voice components...")
+        self.initialize_voice_core()
+
+        if self.is_voice_available:
+            print("\n[Strom] ✅ Ready (Voice + Text Mode)!\n")
+            self._voice_introduction()
+        else:
+            print("\n[Strom] ⚠️ Voice components unavailable. Running in Text-Only mode.\n")
 
         # signal.signal(signal.SIGINT, self._signal_handler) # Moved to run()
     
@@ -90,7 +90,7 @@ class StromAssistant:
         """Default config."""
         return {
             'voice': {
-                'wake_word': 'hey strom',
+                'wake_word': 'hello strom',
                 'stop_word': 'stop strom',
                 'tts': {'rate': 150, 'volume': 0.9, 'voice_gender': 'female'},
                 'stt': {'offline_model_path': 'model', 'sample_rate': 16000, 'use_online': False}
@@ -154,7 +154,7 @@ class StromAssistant:
             
             # Load STT / Hotword (Heavy)
             self.hotword = HotwordListener(
-                wake_word=voice.get('wake_word', 'hey strom'),
+                wake_word=voice.get('wake_word', 'hello strom'),
                 stop_word=voice.get('stop_word', 'stop strom'),
                 model_path=stt_cfg.get('offline_model_path', 'model')
             )

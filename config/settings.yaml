@@ -1,7 +1,7 @@
 # Strom AI Assistant Configuration
 
 voice:
-  wake_word: "hey strom"
+  wake_word: "hello strom"
   stop_word: "stop strom"
   language: "en-US"
   
@@ -12,7 +12,7 @@ voice:
     voice_gender: "female"
   
   stt:
-    offline_model_path: "model"
+    offline_model_path: "model/vosk-model-small-en-in-0.4"
     sample_rate: 16000
     use_online: false
     recording_duration: 15  # Longer recording time

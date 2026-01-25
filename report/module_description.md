@@ -21,7 +21,7 @@
 - Sample Rate: 16000 Hz
 - Audio Format: 16-bit PCM
 - Processing: Real-time streaming recognition
-- Default Wake Word: "Hey Strom"
+- Default Wake Word: "Hello Strom"
 - Default Stop Word: "Stop Strom"
 
 **Methods:**
@@ -32,7 +32,7 @@
 
 **Usage Example:**
 ```python
-listener = HotwordListener(wake_word="hey strom", stop_word="stop strom")
+listener = HotwordListener(wake_word="hello strom", stop_word="stop strom")
 listener.listen_loop(on_wake=activate_callback, on_stop=deactivate_callback)
 ```
 

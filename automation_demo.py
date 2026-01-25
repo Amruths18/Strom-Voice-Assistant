@@ -196,7 +196,7 @@ def show_full_capability_list():
         ],
 
         "🎤 Voice Interaction": [
-            "Wake word detection ('Hey Strom')",
+            "Wake word detection ('Hello Strom')",
             "Stop word detection ('Stop Strom')",
             "Continuous listening with silence detection",
             "Voice feedback and responses",
@@ -213,7 +213,7 @@ def show_full_capability_list():
     print("  🎯 HOW TO USE STROM")
     print(f"{'='*80}")
     print("  1. Run: python main.py")
-    print("  2. Say: 'Hey Strom' to wake")
+    print("  2. Say: 'Hello Strom' to wake")
     print("  3. Give voice commands naturally")
     print("  4. Say: 'Stop Strom' to deactivate")
     print("  5. Press Ctrl+C to exit")

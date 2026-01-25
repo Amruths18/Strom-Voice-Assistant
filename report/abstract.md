@@ -8,7 +8,7 @@
 
 ### Key Features
 
-1. **Voice-Only Interaction**: Complete hands-free operation with wake word ("Hey Strom") and stop word ("Stop Strom") activation
+1. **Voice-Only Interaction**: Complete hands-free operation with wake word ("Hello Strom") and stop word ("Stop Strom") activation
 2. **Offline-First Architecture**: Core functionality works without internet connectivity using Vosk for speech recognition and pyttsx3 for text-to-speech
 3. **Hybrid Operation Mode**: Automatically detects network availability and leverages online services (Whisper API, web search) when possible
 4. **Comprehensive Feature Set**: System control, task management, messaging, and information retrieval capabilities
