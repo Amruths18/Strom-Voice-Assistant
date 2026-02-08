@@ -33,4 +33,4 @@ class Security:
     
     def log_command(self, intent: str, entities: Dict):
         """Log command."""
-        print(f"[Security] Command: {intent}")
+        print(f"[Security] Command: {intent}")git 

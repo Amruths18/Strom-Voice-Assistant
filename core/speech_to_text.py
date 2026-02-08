@@ -203,40 +203,40 @@ class SpeechToText:
         """Transcribe with Vosk."""
         try:
             print("[STT] 🔄 Transcribing (offline)...")
-            
+
             recognizer = KaldiRecognizer(self.model, self.sample_rate)
             recognizer.SetWords(True)
-            
+
             wf = wave.open(audio_path, "rb")
-            
+
             full_text = ""
             while True:
                 data = wf.readframes(self.chunk_size)
                 if len(data) == 0:
                     break
-                
+
                 if recognizer.AcceptWaveform(data):
                     result = json.loads(recognizer.Result())
                     text = result.get('text', '')
                     if text:
                         full_text += text + " "
-            
+
             final = json.loads(recognizer.FinalResult())
             final_text = final.get('text', '')
             if final_text:
                 full_text += final_text
-            
+
             wf.close()
-            
+
             text = full_text.strip()
-            
+
             if text:
                 print(f"[STT] ✅ '{text}'")
             else:
                 print("[STT] ⚠️ No speech recognized")
-            
+
             return text
-            
+
         except Exception as e:
             print(f"[STT] ❌ Error: {str(e)}")
             return ""

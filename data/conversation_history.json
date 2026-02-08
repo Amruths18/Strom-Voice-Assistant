@@ -12,5 +12,35 @@
     "intent": "general_query",
     "entities": {},
     "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T12:29:50.657801",
+    "user_input": "when",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T13:40:01.302891",
+    "user_input": "now on the internet and regular will blend lots of",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
+  },
+  {
+    "timestamp": "2026-01-23T16:27:06.661049",
+    "user_input": "open works out",
+    "intent": "open_app",
+    "entities": {
+      "app_name": "works"
+    },
+    "response": "Opening works..."
+  },
+  {
+    "timestamp": "2026-02-08T20:44:02.775444",
+    "user_input": "oh binary larson",
+    "intent": "general_query",
+    "entities": {},
+    "response": "I'm not sure about that. Would you like me to search?"
   }
 ]
