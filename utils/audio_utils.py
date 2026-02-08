@@ -153,28 +153,48 @@ class AudioUtils:
             total_level = 0
             valid_chunks = 0
             
+                data = stream.read(1024, exception_on_overflow=False)
+                frames.append(data)
+                
+                audio_data = np.frombuffer(data, dtype=np.int16)
+                level = np.sqrt(np.mean(audio_data.astype(np.float64)**2))
+                bars = int(level / 100)
+                
+                print(f"\r[AudioUtils] Level: {'█' * min(bars, 40)} {int(level):4d}", end="", flush=True)
+>>>>>>> e84f20802de3ce2d143b3dda18902f186e9b0daf
+=======
             print("[AudioUtils] Level: ", end="", flush=True)
-            
+
             for i in range(num_chunks):
                 try:
                     data = stream.read(1024, exception_on_overflow=False)
                     frames.append(data)
-                    
+
                     # Calculate level with NaN protection
                     level = self.calculate_audio_level(data)
-                    
+
                     if level > 0:
                         max_level = max(max_level, level)
                         total_level += level
                         valid_chunks += 1
-                    
+
                     # Visual feedback
                     bars = min(level // 2, 40)  # Scale to fit in 40 chars
                     print(f"\r[AudioUtils] Level: {'█' * bars}{' ' * (40 - bars)} {level:3d}%", end="", flush=True)
-                    
+
                 except Exception as e:
                     print(f"\n[AudioUtils] Read error: {str(e)}")
                     continue
+=======
+                data = stream.read(1024, exception_on_overflow=False)
+                frames.append(data)
+                
+                audio_data = np.frombuffer(data, dtype=np.int16)
+                level = np.sqrt(np.mean(audio_data.astype(np.float64)**2))
+                bars = int(level / 100)
+                
+                print(f"\r[AudioUtils] Level: {'█' * min(bars, 40)} {int(level):4d}", end="", flush=True)
+>>>>>>> e84f20802de3ce2d143b3dda18902f186e9b0daf
             
             print()  # New line
             

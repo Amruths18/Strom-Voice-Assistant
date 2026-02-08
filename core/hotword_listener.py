@@ -52,11 +52,7 @@ class HotwordListener:
             print(f"[Hotword] ❌ ERROR: Failed to load Vosk model")
             print(f"[Hotword] Path: {model_path}")
             print(f"[Hotword] Error: {str(e)}")
-            print("\n[Hotword] SOLUTION:")
-            print("  1. Download: https://alphacephei.com/vosk/models")
-            print("  2. Get: vosk-model-small-en-us-0.15")
-            print("  3. Extract to project root as 'model' folder")
-            sys.exit(1)
+            raise Exception("Vosk model not found or invalid.")
         
         # PyAudio setup
         self.audio = pyaudio.PyAudio()
@@ -148,11 +144,7 @@ class HotwordListener:
             print("[Hotword] ✅ Listening...")
         except Exception as e:
             print(f"[Hotword] ❌ Failed to start: {str(e)}")
-            print("\nSOLUTIONS:")
-            print("  1. Check microphone connection")
-            print("  2. Check system permissions")
-            print("  3. Close other apps using microphone")
-            sys.exit(1)
+            raise Exception(f"Failed to open audio stream: {str(e)}")
     
     def stop_listening(self):
         """Stop audio stream."""

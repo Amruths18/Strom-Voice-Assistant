@@ -76,7 +76,7 @@ mv vosk-model-small-en-us-0.15 model
 Edit `config/settings.yaml`:
 ```yaml
 voice:
-  wake_word: "hey strom"  # Change this
+  wake_word: "hello strom"  # Change this
   tts:
     rate: 150  # Speech speed
     volume: 0.9  # Volume level
@@ -99,6 +99,6 @@ python core/text_to_speech.py
 When everything works:
 1. Run `python main.py`
 2. Wait for "STROM IS LISTENING"
-3. Say "Hey Strom"
+3. Say "Hello Strom"
 4. Speak your command
 5. Strom will respond!

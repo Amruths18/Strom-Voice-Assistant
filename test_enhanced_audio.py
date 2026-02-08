@@ -20,11 +20,11 @@ def test_hotword():
     print("  HOTWORD DETECTION TEST")
     print("="*50)
 
-    listener = HotwordListener(wake_word="hey strom", stop_word="stop strom")
+    listener = HotwordListener(wake_word="hello strom", stop_word="stop strom")
 
     try:
         listener.start_listening()
-        print("Say 'hey strom' or 'stop strom' to test...")
+        print("Say 'hello strom' or 'stop strom' to test...")
         print("Press Ctrl+C to stop test\n")
 
         start_time = time.time()

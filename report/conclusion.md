@@ -88,7 +88,7 @@ Strom provides conversational, natural language interaction:
 
 #### Hands-Free Operation
 Complete voice-only control:
-- Wake word activation ("Hey Strom")
+- Wake word activation ("Hello Strom")
 - Stop word deactivation ("Stop Strom")
 - No keyboard or mouse required
 - Continuous listening loop

@@ -2,7 +2,7 @@
 
 ## 🚀 Quick Start
 1. Run: `python main.py`
-2. Say: **"Hey Strom"** to wake up the assistant
+2. Say: **"Hello Strom"** to wake up the assistant
 3. Give voice commands naturally
 4. Say: **"Stop Strom"** to deactivate
 
@@ -64,11 +64,11 @@
 ### Best Practices
 - Speak clearly and at normal volume
 - Wait for Strom to finish responding before new commands
-- Use natural language - "Hey Strom, open Chrome" works great
+- Use natural language - "Hello Strom, open Chrome" works great
 - Say "Stop Strom" anytime to cancel current interaction
 
 ### Wake Words
-- **"Hey Strom"** - Primary wake word
+- **"Hello Strom"** - Primary wake word
 - **"Hi Strom"** - Alternative wake word
 - **"Stop Strom"** - Deactivation word
 
@@ -118,7 +118,7 @@ Edit `config/settings.yaml` to customize:
 ## 🎯 Example Conversation
 
 ```
-You: "Hey Strom"
+You: "Hello Strom"
 Strom: "Hello! I'm Strom. How can I help?"
 
 You: "Open Chrome"
@@ -152,4 +152,4 @@ Strom can handle complex commands:
 
 ---
 
-**Ready to automate? Run `python main.py` and say "Hey Strom"!** 🎤✨
+**Ready to automate? Run `python main.py` and say "Hello Strom"!** 🎤✨

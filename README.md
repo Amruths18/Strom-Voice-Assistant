@@ -1,3 +1,4 @@
+<h1> Working On Implement </h1>
 # Strom AI Assistant 🎤
 
 Voice-powered desktop AI assistant with offline-first design.
@@ -24,7 +25,7 @@ python test_audio_setup.py
 python main.py
 ```
 
-Say **"Hey Strom"** to activate!
+Say **"Hello Strom"** to activate!
 
 ## Voice Commands
 

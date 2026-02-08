@@ -48,7 +48,7 @@ class SpeechToText:
             print(f"[STT] ✅ Model loaded")
         except Exception as e:
             print(f"[STT] ❌ Failed to load model: {str(e)}")
-            sys.exit(1)
+            raise Exception("Vosk model not found.")
         
         # PyAudio
         self.audio = pyaudio.PyAudio()
@@ -137,6 +137,7 @@ class SpeechToText:
         speech_detected = False
         
         print("[STT] Level: ", end="", flush=True)
+        print(f"\n[STT] Debug: Starting loop. Threshold: {self.silence_threshold}")
         
         try:
             while (time.time() - start_time) < max_duration:
@@ -145,14 +146,18 @@ class SpeechToText:
                 
                 level = self.get_audio_level(data)
                 
-                # Visual feedback with error protection
-                try:
-                    bars = int(level / 100) if level > 0 else 0
-                    bars = min(bars, 40)
-                    level_int = int(level) if not np.isnan(level) and not np.isinf(level) else 0
-                    print(f"\r[STT] Level: {'█' * bars}{' ' * (40 - bars)} {level_int:4d}", end="", flush=True)
-                except:
-                    print(f"\r[STT] Level: Recording...    ", end="", flush=True)
+                # Dynamic threshold adjustment based on recent noise
+                if len(noise_levels) > 10:
+                    noise_levels.pop(0)
+                    avg_noise = sum(noise_levels) / len(noise_levels)
+                    dynamic_threshold = max(self.silence_threshold, avg_noise * 1.2)
+                else:
+                    dynamic_threshold = self.silence_threshold
+                
+                # Visual feedback
+                bars = int(level / 200)  # Adjusted for better visualization
+                status = "🎤" if level > dynamic_threshold else "🤫"
+                print(f"\r[STT] {status} Level: {'█' * min(bars, 30)} {int(level):4d}", end="", flush=True)
                 
                 # Detect speech/silence
                 if level > self.silence_threshold:
